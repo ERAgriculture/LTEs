@@ -8,6 +8,7 @@ This repository includes:
 
 - Methods and Data Processing: Documentation of the methodology used to acquire and process LTE data, along with details on data sources and download instructions.
 - Data: All datasets used in the scripts to generate the Bookdown document are included for transparency and reproducibility.
+- Package installation : Specific Script to install the ERAg Package
 - Systematic Map: A detailed exploration and visualization of LTEs, highlighting key findings and trends.
 - Interactive Features: A Shiny app integrated into the document, enabling users to explore climate data interactively for selected locations and crops.
 # How to Use This Repository
