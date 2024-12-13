@@ -1,0 +1,1547 @@
+---
+title: "Long Term Experiments in ERA"
+author: Lolita Muller
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true          # Enables the table of contents
+    toc_depth: 3       # Sets the depth of the table of contents
+    toc_float: true    # Makes the TOC float on the side
+    code_folding: hide # Hides code chunks by default
+runtime: shiny
+---
+
+```{r setup, include = FALSE}
+# Global chunk options and root directory setup
+knitr::opts_chunk$set(
+  collapse = TRUE,       # Collapse code and output in chunks
+  comment = "#>")
+
+# Please run getwd() in the console to get the project location and copy into the line below
+root.dir <- "C:/Users/mlolita/OneDrive - CGIAR/ERA/LTEs 2024/script/vignettes"
+knitr::opts_knit$set(root.dir = root.dir)
+
+
+
+
+```
+
+
+```{r packages,include=F,eval=T,echo=T}
+require(ERAg)
+require(tidyr)
+require(treemap)
+require(s3fs)
+require(miceadds)
+require(readr)
+require(readxl)
+require(data.table)
+require(dplyr)
+require(ggplot2)
+require(sf)
+require(rnaturalearth)
+require(treemapify)
+require(cowplot)
+require(UpSetR)
+require(grid)
+require(viridis)
+require(tiff)
+require(raster)
+require(sp)
+require(DT)
+require(plotly)
+```
+
+
+This chapter provides a comprehensive exploration of the ERA dataset, focusing on long-term experiments (LTEs) data. The ERA dataset compiles an extensive collection of studies, emphasizing the impact of various agricultural practices, technologies, and outcomes across diverse geographical locations and timeframes.
+Please send feedback on the explanations or on discoveries that should be included in the next version to Lolita Muller (m.lolita@cgiar.org). 
+
+This chapter is structured in a bookdown format, with a table of contents conveniently accessible on the right. Code snippets can be revealed by clicking the "Show" buttons.
+
+The primary objectives of this section are:
+
+- To explore the ERA dataset, offering insights into its structure while demonstrating the functionality and application of the ERAg package
+- To visualize the ERA dataset and its LTE components, offering insights into trends and coverage.
+- To demonstrate systematic mapping techniques for analyzing LTE data.
+- To guide users through the implementation of meta-analyses for exploring critical agricultural research questions.
+
+# Method
+
+## Search
+
+
+In our initial search conducted in 2014, we queried the Web of Science and Scopus databases for English-language articles focused on agricultural technology outcomes within Africa. Our search was constructed around three core components: technology, outcome, and geographic location, with an emphasis on studies specific to the African continent. The search and screening were repeated in 2019 to update the library for the years 2014 to 2018 for African countries. 
+
+Our methodology employed Boolean operators ‘OR’ and ‘AND’ to ensure the comprehensiveness of the search. This string for each technology category was run in both search engines for each of the outcome categories, ‘productivity,’ ‘resilience,’ ‘mitigation,’ and additionally for ‘barriers.’.
+
+
+In 2023, we expanded the ERA dataset by updating African data from 2018 to 2023 and incorporating long-term experiment (LTE) data from South Asia. For the African update, we applied the same methodology as previous updates to ensure consistency. For the South Asia expansion on Long Term Experiments, we adhered to the established ERA criteria, focusing exclusively on published studies that met our requirements. This effort included a targeted keyword search on Google Scholar, emphasizing “long-term experiments” rather than general agricultural studies. Additionally, we conducted a thorough review of the full publication histories of relevant authors to ensure comprehensive coverage of LTEs in the region. Our work to further integrate LTEs from Asia remains ongoing.
+
+To enhance this dataset on long term experiments, we also built upon existing resources, including the Global Long-Term Experiments Network (GLTEN) and the Guardian project. However, not all experiments could be included, as the ERA dataset is limited to LTEs with published articles that meet specific criteria. These limitations underscore the challenges in achieving complete representation.
+
+
+## Screening criteria
+
+We used a two-stage screening strategy to determine the relevance of articles to our primary research question. 1. Title and abstract screening. Our team manually screened articles titles and abstracts. 2. Full text screening. Our criteria were the following (i) location, (ii) technology and outcome relevance, (iii) data on both a new and conventional technology, and (iv) inclusion of primary data. 
+
+Articles that passed the title and abstract screening were assessed in their entirety against the same criteria as the earlier abstract and title screening. The full text screening considered all criteria listed above and focused on outcomes, comparators, and primary data, which is less commonly described in titles and abstracts.
+
+
+## Search results
+
+The initial search identified 144,567 unique articles published between 1965 and 2013, of which 1,178 were selected during the first round of screening.
+
+In 2019, the search and screening were repeated to update the library with articles published between 2014 and 2018 for African countries. This added 972 articles to the corpus. Combining these with articles identified in previous searches resulted in the ERA library, comprising 2,011 studies published between 1965 and 2018.
+
+In 2023, the search and screening were further updated to include studies published between 2018 and 2023. This effort added:
+557 articles from Latin America,
+292 articles from Africa, and
+202 articles on long-term experiments (LTEs) from Africa and South Asia.
+As part of this update, a dedicated search for LTEs was conducted, and the extraction process for LTE-related data was refined to ensure consistency and alignment with the latest methodology, building upon the processes established in the 2019 version of the study.
+
+| Year            | Description                                       | Articles Added                       |
+|------------------|---------------------------------------------------|---------------------------------------|
+| Initial Search   | First round of screening                         | 1178                                  |
+| 2019 Update      | Update for African countries (2014–2018)         | 972                                   |
+| 2023 Update      | Update for Latin America, Africa, and LTEs (2018–2023) | 557 (Latin America), 292 (Africa), 202 (LTEs) |
+| Total            | Total articles in the ERA library                | 3062                                  |
+
+
+## How data were extracted
+
+
+### Link to template
+
+For each paper, data from tables, text, and figures were extracted into an Excel format. Each paper was linked to a dedicated Excel file containing detailed information on the journal, authors, location, soil characteristics, duration,experimental design, practices,treatment comparisons, crops, varieties, outcomes, and measurements and more.
+
+Link to excel template:https://cgiar-my.sharepoint.com/:x:/r/personal/p_steward_cgiar_org/Documents/ERA/Data%20Entry/Data%20Entry%202023/Excel%20Template/V2.0.28%20-%20Industrious%20Elephant.xlsm?d=w7b6da0ee08c74bc5acc0567c23a2a79e&csf=1&web=1&e=LErfWY
+
+### Link to training materials
+
+Enumerators participated in an intensive training program spanning 4 to 6 weeks. This program was designed to equip them with the necessary skills to handle the complexities of data extraction. The training was guided by a comprehensive manual that outlined key concepts, provided examples of the types of data and experiments they would encounter, and addressed potential challenges.
+
+To further support the learning process, the training materials included a detailed breakdown of the training sessions, practical exercises, resource documents, and instructional videos. These resources offered step-by-step guidance to ensure that extractors were well-prepared for their tasks.
+
+Following the training, ongoing support was provided through daily meetings to resolve challenges as they arose. Slack served as a platform for rapid communication and feedback, fostering collaboration among peers and project leads.
+
+Despite these efforts, occasional errors were inevitable. To uphold data quality, the Four Eyes Principle was adopted. Each article's extraction underwent a secondary review by another enumerator, a project lead, or both. This rigorous process ensured that errors were identified and corrected, maintaining a high standard of data accuracy and integrity.
+
+
+Link to training materials: https://cgiar-my.sharepoint.com/:x:/r/personal/p_steward_cgiar_org/Documents/ERA/Data%20Entry/Data%20Entry%202023/Training%Material
+
+
+### Link to extracted excels
+2018 https://cgiar-my.sharepoint.com/:x:/r/personal/p_steward_cgiar_org/Documents/ERA/Data%20Entry/Data%20Entry%2018
+2020 https://cgiar-my.sharepoint.com/:x:/r/personal/p_steward_cgiar_org/Documents/ERA/Data%20Entry/Data%20Entry%2020
+2022 https://cgiar-my.sharepoint.com/:x:/r/personal/p_steward_cgiar_org/Documents/ERA/Data%20Entry/Data%20Entry%2022/Data
+2023 https://cgiar-my.sharepoint.com/:x:/r/personal/p_steward_cgiar_org/Documents/ERA/Data%20Entry/Data%20Entry%2023/Data
+
+## How data were imported
+### Link to github
+The code used to generate and compile the dataset from the excel files is in the ERAg R package using R 4.2.1 (R Development Team) and may be downloaded from GitHub https://github.com/EiA2030/ERAg. 
+
+## Download data from s3 bucket
+Data is available and can be downloaded from the S3 Bucket as it follows : 
+
+```{r}
+#download most recent version of the data 
+
+# Set up connection to S3 bucket
+s3<-s3fs::S3FileSystem$new(anonymous = T)
+  era_s3<-"s3://digital-atlas/era"
+  
+  # List the files in the s3 bucket
+  files<-s3$dir_ls(file.path(era_s3,"data"))
+  # This is the most recent version of the datas3://digital-atlas/era/data/industrious_elephant_2023-YYYY-MM-DD.RData
+  files<-tail(grep(".RData",grep("industrious_elephant_2023",files,value=T),value=T),1)
+  
+  # Set a save location for the dataset (amend to something more suitable for your needs)
+  save_path<-file.path(getwd(),basename(files))
+  
+  if(!file.exists(save_path)){
+    s3$file_download(files,save_path,overwrite = T)
+  }
+  
+  Tables<- miceadds::load.Rdata2(file=basename(save_path),path=dirname(save_path))
+
+  
+#you can also download the data tables from the data folder directly 
+#Tables<-load.Rdata2("industrious_elephant_2023-2024-11-14.RData")
+
+```
+
+
+## Subsetting the data to LTEs
+
+We subset the complete dataset to focus on LTE data, selecting experiments with a duration exceeding five years. Each paper was assigned a unique identifier, while distinct long-term experiments (LTEs) were assigned a specific LTE code. This approach enabled multiple papers to be linked to a single long-term experiment, ensuring consistent tracking and analysis.
+
+```{r,message=FALSE,warning=FALSE}
+# Load unique LTEs if available
+# unique_ltes <- read_delim("C:/Users/mlolita/OneDrive - CGIAR/ERA/LTEs 2024/data/unique.ltes.csv", 
+#     delim = ";", escape_double = FALSE, trim_ws = TRUE)
+
+unique_ltes<-readRDS("unique.ltes.rds")
+
+#merge LTE data with the table to have all the info available
+
+# Convert `unique_ltes` to a data.table format for efficient filtering
+unique_ltes_dt <- as.data.table(unique_ltes)
+
+# Filter each table in `Tables` based on matching `B.Code` from `unique_ltes`
+filtered_Tables <- lapply(Tables, function(tbl) {
+  # Check if the table contains a `B.Code` column
+  if ("B.Code" %in% colnames(tbl)) {
+    # Convert the table to a data.table for efficient joins
+    tbl <- as.data.table(tbl)
+    
+    # Perform a left join to retain only rows with matching `B.Code` and add `LTE.ID`
+    filtered_tbl <- tbl[unique_ltes_dt, on = .(B.Code = Code), nomatch = 0,allow.cartesian=TRUE]
+    
+    # Arrange columns with `LTE.ID`, `B.Code`, `Year.start`, and `Year.end` first
+    col_order <- c("LTE.ID", "B.Code", "Year.start", "Year.end", 
+                   setdiff(names(tbl), c("LTE.ID", "B.Code", "Year.start", "Year.end")))
+    filtered_tbl <- filtered_tbl[, ..col_order]
+    
+    return(filtered_tbl)
+  } else {
+    return(tbl)  # Return the table unchanged if it lacks `B.Code`
+  }
+})
+```
+
+
+```{r}
+# Display the number of unique publications and LTEs
+cat("Number of unique papers:", length(unique(filtered_Tables$Pub.Out$B.Code)), "\n")
+cat("Number of unique LTEs:", length(unique(filtered_Tables$Pub.Out$LTE.ID)), "\n")
+```
+
+# Explore data
+## Tables and key fields
+
+The result is a collection of 41 tables, each containing specific information relevant to the dataset.
+
+```{r,message=FALSE}
+
+unique_names <- names(filtered_Tables)
+unique_names
+
+```
+The main tables are :
+
+- Pub.Out : Publication information, DOIs, ERA version
+- Site.Out : Location, coordinates    
+- ExpD.Out : Experimental design  
+- Times.Out : Timeline of the experiment   
+- Times.Clim : Climate information for the location
+- Prod.Out : Product    
+- Var.Out : Variety
+- Till.Out : Information on tillage during the experiment
+- Plant.Out : Planting information
+- PD.Out: Planting dates (Linked codes in table PD.Codes)
+- Fert.Out : Information on fertilizer use during the experiment (Linked method in table Fert.Method) 
+- Chems.AI : Chemical active ingredients  
+- Chems.Out : Information on chemicals use during the experiment (Linked codes in table Chems.Codes)
+- Res.Out : Information on residues during the experiment (Linked method in table Res.Method)    
+- Har.Out : Information on harvesting during the experiment
+- pH.Out : Information on pH control during the experiment
+- WH.Out : Information on water harvesting during the experiment (Irrigation information can be found in Irrig.Codes and Irrig.Method)
+- AF.Out : Information on agroforestry during the experiment (Linked Tree information in table AF.Trees )
+- Int.Out : Information on intercropping during the experiment 
+- Rot.Out : Information on crop rotation during the experiment (Linked Rotation Sequence in table Rot.Seq )
+- Out.Out : Outcomes. Outcomes   
+- Out.Econ : Economic outcomes
+- Data.Out : Measured outcomes for concerned practice and product.
+
+The key fields used in this vignette are : 
+
+- B.Code and LTE.ID are in every table. B.Code is the code for the publication and LTE.ID is the code for the Long term experiment. several papers having different N.Codes can refer to the same long term experiment.
+- Site.LatD and Site.LonD are the site's coordinates in the Site.Out tables
+- P.Product refers to the name of the crop and P.Product.Subtype is the product category in the Prod.Out table
+- Out.Subind is the measured outcome in the Out.Out table 
+
+
+For more information on Tables and field you can explore the intro Vignette of the ERAg package -> browseVignettes("ERAg)
+
+# Making the systematic map of long term experiments (LTEs)
+
+This section provides an in-depth exploration of Long Term Experiment (LTE) data, specifically focusing on data coverage, experiment durations, geographic distribution, included products, measured outcomes, and agricultural practices. Through various analyses and visualizations, we examine how LTEs contribute to understanding agricultural systems and sustainability. Key sections include:
+
+**Data Coverage**: Overview of the number of LTEs and research publications, identifying unique experiments and papers in the dataset.
+
+**Experiment Duration**: Analysis of LTE durations, categorized to show how long experiments have been running. This helps identify long-term trends and data richness across various timescales.
+
+**Geographic Distribution**: Visualization of LTE locations globally, with a focus on relevant countries. We identify countries with high experiment densities, offering insights into regional research priorities.
+
+**Products in LTEs**: Exploration of agricultural products studied across LTEs, categorized by product type. A treemap visualization provides an intuitive view of the focus areas in terms of crop and livestock products.
+
+**Outcomes Measured**: Analysis of key outcomes tracked in LTEs, such as biodiversity, economic performance, and yield metrics. We look at the prevalence of each outcome across experiments and use bar charts to illustrate these trends.
+
+**Agricultural Practices**: Investigation of the practices implemented in LTEs, such as rotation, intercropping, and fertilization methods. This section also identifies LTEs that integrate both improved and unimproved crop varieties, as well as different fertilization techniques.
+
+**Practice Bundles**: Analyzing common bundles of practices used in LTEs. An UpSet plot visualizes the overlap of practices across LTEs, highlighting which practices are commonly applied together.
+
+
+
+
+## Duration of Long-Term Experiments
+
+To effectively visualize the duration of Long Term Experiments, we grouped them into categorized duration ranges. This approach helps organize the experiments into manageable categories, allowing us to create a clear and easily interpretable plot, especially given the large volume of papers in our dataset. 
+
+```{r,warning=FALSE}
+
+# Table with time data 
+times_out <- filtered_Tables$Times.Out
+
+# Ensure the data is unique by LTE.ID, Year.start, and Year.end
+times_out_unique <- times_out %>%
+  dplyr::select(LTE.ID, Year.start, Year.end) %>%
+  dplyr::distinct() %>%
+  dplyr::arrange(LTE.ID, Year.start)
+
+# Create a new column for duration (years)
+times_out_unique <- times_out_unique %>%
+  mutate(
+    LTE_ID = LTE.ID,  # Standardize to LTE_ID to use consistently
+    Year.start = as.numeric(Year.start),
+    Year.end = as.numeric(Year.end),
+    Duration = Year.end - Year.start
+  ) %>%
+  group_by(LTE_ID) %>%
+  filter(Duration == max(Duration, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(Duration_Category = case_when(
+    Duration <= 5 ~ "5 years",
+    Duration > 5 & Duration <= 10 ~ "6-10 years",
+    Duration > 10 & Duration <= 15 ~ "11-15 years",
+    Duration > 15 & Duration <= 20 ~ "16-20 years",
+    Duration > 20 & Duration <= 30 ~ "21-30 years",
+    Duration > 30 ~ "30+ years"
+  )) %>%
+  filter(!is.na(Duration)) %>%
+  dplyr::select(LTE_ID, Year.start, Year.end, Duration, Duration_Category)
+
+
+
+# Count the number of LTEs in each duration category
+times_out_unique$Duration_Category <- factor(times_out_unique$Duration_Category, 
+                                             levels = c("5 years", "6-10 years", "11-15 years", 
+                                                        "16-20 years", "21-30 years", "30+ years"))
+
+# Count the number of LTEs in each duration category
+duration_counts <- times_out_unique %>%
+  group_by(Duration_Category) %>%
+  summarise(count = n()) %>%
+  arrange(Duration_Category)
+
+# Plot the bar chart with ordered categories
+options(repr.plot.width = 16, repr.plot.height = 8)  # Set larger dimensions
+
+duration_plot <- ggplot(duration_counts, aes(x = Duration_Category, y = count)) +
+  geom_bar(stat = "identity", fill = "darkseagreen", width = 0.6) +  # Adjust bar width
+  geom_text(aes(label = count), vjust = -0.5, color = "black", size = 3) +  # Add count labels on top of each bar
+  labs( x = "Duration (Years)", 
+       y = "Number of LTEs") +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),  # Remove grid lines
+    axis.title.x = element_text(margin = margin(t = 10))  # Move x-axis title down
+  )
+
+print(duration_plot)
+
+
+```
+
+## Geographic Distribution of LTEs
+
+Long Term Experiment data was collected for Africa and South Asia, with each experiment linked to a specific location through its coordinates, enabling precise mapping of the data. 
+
+```{r,warning=FALSE,fig.width=6, fig.height=4,fig.align='center'}
+
+# Extract and clean Site data from filtered_Tables
+site_data <- as.data.frame(filtered_Tables$Site.Out) %>%
+  dplyr::select(LTE.ID, Country, Latitude = Site.LatD, Longitude = Site.LonD) %>%
+  distinct() %>%
+  mutate(
+    Longitude = as.numeric(Longitude),
+    Latitude = as.numeric(Latitude)
+  ) %>%
+  filter(!is.na(Longitude) & !is.na(Latitude))  # Remove rows with missing coordinates
+
+
+# Count the number of LTEs per country
+lte_counts <- site_data %>%
+  group_by(Country) %>%
+  summarise(N_LTE = n())
+
+# Prepare the world map, excluding specified regions
+world <- ne_countries(scale = "medium", returnclass = "sf") %>%
+  filter(!continent %in% c("North America", "South America", "Europe", "Oceania", "Antarctica") & 
+           !admin %in% c("Russia")) %>%
+  mutate(admin = if_else(admin == "United Republic of Tanzania", "Tanzania", admin))
+
+# Ensure the CRS of `world` is consistent (EPSG:4326)
+world <- st_transform(world, crs = 4326)
+
+# Filter site data to exclude the specified regions
+site_data_filtered <- site_data %>%
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326, remove = FALSE)
+
+# Join LTE counts with country geometries for mapping
+countries_studies <- world %>%
+  dplyr::select(admin, geometry) %>%
+  rename(Country = admin) %>%
+  left_join(lte_counts, by = "Country")
+
+# Plot the map with LTE counts per country
+map <- ggplot() +
+  geom_sf(data = countries_studies, aes(fill = N_LTE), color = "white") +
+  geom_point(data = site_data_filtered, aes(x = Longitude, y = Latitude), 
+             shape = 21, color = "black", fill = "white", size = 2, alpha = 0.4) +
+  scale_fill_viridis_c(
+    option = "mako",
+    direction = -1,
+    na.value = "gray92"  # Set color for NA values
+  ) +
+  labs(fill = "Number of LTEs") +
+  theme_minimal() +
+  theme(
+    legend.key.size = unit(1, "lines"), 
+    axis.line = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.position = c(0.1, 0.15)
+  ) +
+  coord_sf(xlim = c(-20, 95), ylim = c(-40, 40), expand = FALSE)
+
+# Display the plot
+map
+
+# Display the summary table of LTE counts by country
+DT::datatable(
+  lte_counts,
+  options = list(
+    scrollY = "400px",  # Set vertical scroll height
+    pageLength = 20     # Initial number of rows displayed
+  )
+)
+
+# Optionally save the summary table as a CSV
+# write.csv(lte_counts, "summary_by_country.csv", row.names = FALSE)
+
+
+```
+
+## Types of Products Studied in LTEs
+
+The products in the dataset are organized hierarchically, with each product labeled by its common or latin name and grouped into broader categories such as cereals, legumes, etc. It’s important to note that a single paper can study multiple products, which means the total number of papers represented in the treemaps exceeds the actual total number of unique papers.
+
+```{r,warning=FALSE,fig.width=6, fig.height=4,fig.align='center',message=FALSE}
+
+# Prepare the data from filtered_Tables$Prod.Out
+DATA_split_product <- filtered_Tables$Prod.Out %>%
+  dplyr::select(LTE.ID, P.Product.Subtype, B.Code) %>%
+  distinct() %>%  # Remove duplicates
+  filter(P.Product.Subtype != "Energy Production", P.Product.Subtype != "Bovine", P.Product.Subtype != "Caprine") %>%
+  separate_rows(P.Product.Subtype, sep = "-") %>%  # Split multiple product subtypes if necessary
+  group_by(P.Product.Subtype, LTE.ID) %>%
+  summarize(N_Studies = n_distinct(B.Code)) %>%  # Count distinct studies per subtype and LTE.ID
+  group_by(P.Product.Subtype) %>%
+  summarize(N_LTE = n_distinct(LTE.ID), N_Studies = sum(N_Studies), .groups = 'drop')%>%
+ mutate(P.Product.Subtype = case_when(
+    P.Product.Subtype %in% c("Bovine") ~ "Cattle",
+    P.Product.Subtype %in% c("Caprine") ~ "Shoats",
+    P.Product.Subtype %in% c("Fodders") ~ "Fodder crops",
+    P.Product.Subtype %in% c("Starchy Staples") ~ "Roots and Tubers",
+    TRUE ~ P.Product.Subtype)) # Sum up LTEs and studies per subtype
+
+# Calculating relative abundance of each Product and taking out Trees and Fallow products that don't have relevance here 
+
+DATA_product <- DATA_split_product %>%
+  rename(Category = P.Product.Subtype) %>%
+  mutate(Relative_Abundance = (N_LTE / sum(N_LTE))) %>%
+  filter(Category!="Fallow",
+         Category!="Tree")
+
+# Custom colors for the categories
+custom_colors <- c(
+  "Cover Crop" = "#1664AB",
+  "Fallow" = "#1664AB",
+  "Cash Crops" = "#78B5D8",
+  "Cereals" = "#ABCFE5",
+  "Fibre & Wood" = "#78B5D8",
+  "Fodder crops" = "#60A6D1",
+  "Fruits" = "#ABCFE5",
+  "Nuts" = "#78B5D8",
+  "Spices" = "#78B5D8",
+  "Legumes" = "#CFE1F2",
+  "Oilseeds and Oils" = "#78B5D8",
+  "Tree" = "#4A97C9",
+  "Roots and Tubers" = "#F7FBFF",
+  "Vegetables" = "#CFE1F2"
+)
+
+# Function to calculate luminance of a color
+calculate_luminance <- function(color) {
+  cols <- col2rgb(color) / 255
+  (0.299 * cols[1, ] + 0.587 * cols[2, ] + 0.114 * cols[3, ])
+}
+
+# Function to determine text color based on background luminance
+text_color <- function(bg_color) {
+  if (calculate_luminance(bg_color) < 0.5) "white" else "black"
+}
+
+# Add a column for text color based on category color
+DATA_product <- DATA_product %>%
+  mutate(text_color = sapply(Category, function(cat) text_color(custom_colors[cat])))
+
+# Create the treemap plot
+treemap <- ggplot(DATA_product, aes(area = N_LTE, fill = Category, label = ifelse(Category == "Porcine", "", paste0(Category, "\n", "(", N_LTE, ")")))) +
+  geom_treemap() +
+  geom_treemap_text(aes(colour = text_color), place = "center", size = 10) +
+  scale_fill_manual(values = custom_colors, guide = FALSE) +  # Use custom colors
+  scale_color_identity() +  # Apply the custom text colors
+  theme(
+    text = element_text(family = "Arial", face = "italic", size = 8),
+    panel.background = element_rect(fill = "white")
+  )
+
+# Display the plot
+treemap
+
+
+```
+
+```{r,warning=FALSE,fig.width=8, fig.height=6,fig.align='center',message=FALSE}
+
+DATA_split_product <- filtered_Tables$Prod.Out %>%
+  dplyr::select(LTE.ID, P.Product.Subtype, P.Product, B.Code) %>%
+  distinct() %>%
+  filter(P.Product.Subtype != "Energy Production", 
+         P.Product.Subtype != "Bovine", 
+         P.Product.Subtype != "Caprine") %>%
+  separate_rows(P.Product.Subtype, sep = "-") %>%
+  group_by(P.Product.Subtype, P.Product, LTE.ID) %>%
+  summarize(N_Studies = n_distinct(B.Code), .groups = 'drop') %>%
+  group_by(P.Product.Subtype, P.Product) %>%
+  summarize(N_LTE = n_distinct(LTE.ID), N_Studies = sum(N_Studies), .groups = 'drop')
+
+calculate_luminance <- function(color) {
+  cols <- col2rgb(color) / 255
+  (0.299 * cols[1, ] + 0.587 * cols[2, ] + 0.114 * cols[3, ])
+}
+
+text_color <- function(bg_color) {
+  if (calculate_luminance(bg_color) < 0.5) "white" else "black"
+}
+
+# Step 3: Set up color palette and ensure it matches unique categories
+distinct_colors <- viridis_pal(option = "F", direction = -1)(length(unique(DATA_split_product$Category)))  # 14 colors in reverse viridis palette
+names(distinct_colors) <- unique(DATA_split_product$Category)
+
+DATA_product <- DATA_split_product %>%
+  rename(Category = P.Product.Subtype, Subcategory = P.Product) %>%
+  mutate(Relative_Abundance = (N_LTE / sum(N_LTE)),
+         text_color = sapply(Category, function(cat) text_color(distinct_colors[cat]))) %>%
+  filter(Category!="Fallow",
+         Category!="Tree") %>%
+mutate(Category = case_when(
+    Category %in% c("Bovine") ~ "Cattle",
+    Category %in% c("Caprine") ~ "Shoats",
+    Category %in% c("Starchy Staples") ~ "Roots and Tubers",
+    TRUE ~ Category
+  )) %>%
+  filter(Category!="Fallow",
+         Category!="Tree")
+
+category_sum <- filtered_Tables$Prod.Out %>%
+  dplyr::select(LTE.ID, P.Product.Subtype, B.Code) %>%
+  distinct() %>%  # Remove duplicates
+  filter(P.Product.Subtype != "Energy Production", P.Product.Subtype != "Bovine", P.Product.Subtype != "Caprine") %>%
+  separate_rows(P.Product.Subtype, sep = "-") %>%  # Split multiple product subtypes if necessary
+  group_by(P.Product.Subtype, LTE.ID) %>%
+  summarize(N_Studies = n_distinct(B.Code)) %>%  # Count distinct studies per subtype and LTE.ID
+  group_by(P.Product.Subtype) %>%
+  summarize(N_LTE = n_distinct(LTE.ID), N_Studies = sum(N_Studies), .groups = 'drop') %>%
+  mutate(P.Product.Subtype = case_when(
+    P.Product.Subtype %in% c("Bovine") ~ "Cattle",
+    P.Product.Subtype %in% c("Caprine") ~ "Shoats",
+    P.Product.Subtype %in% c("Starchy Staples") ~ "Roots and Tubers",
+    TRUE ~ P.Product.Subtype
+  )) %>%
+  rename(Category = P.Product.Subtype)  # Rename for joining
+
+# Merge category sums into DATA_product
+DATA_product <- DATA_product %>%
+  left_join(category_sum %>% group_by(Category) %>% summarize(category_sum = sum(N_LTE)), by = "Category") %>%
+  mutate(Category_Label = paste0(Category, " (", category_sum, ")"))
+
+# Step 3: Set up color palette and ensure it matches unique categories
+distinct_colors <- viridis_pal(option = "F", direction = -1)(length(unique(DATA_product$Category)))  # 14 colors in reverse viridis palette
+names(distinct_colors) <- unique(DATA_product$Category)
+
+# Step 4: Define luminance functions for text color
+calculate_luminance <- function(color) {
+  cols <- col2rgb(color) / 255
+  (0.299 * cols[1, ] + 0.587 * cols[2, ] + 0.114 * cols[3, ])
+}
+
+text_color <- function(bg_color) {
+  if (calculate_luminance(bg_color) < 0.5) "white" else "black"
+}
+
+# Step 5: Apply text color based on background color
+DATA_product <- DATA_product %>%
+  mutate(text_color = sapply(Category, function(cat) text_color(distinct_colors[cat])))
+
+
+DATA_product$Subcategory <- gsub("Stylosanthes guianensis", "Stylo", DATA_product$Subcategory)
+DATA_product$Subcategory <- gsub("Desmodium intortum", "Greenleaf Desmodium", DATA_product$Subcategory)
+DATA_product$Subcategory <- gsub("Medicago truncatula", "Barrel Medic", DATA_product$Subcategory)
+
+
+treemap <- ggplot(DATA_product, aes(area = N_LTE, fill = Category, 
+                                   subgroup = Category_Label,  # Grouping by main Category
+                                   label = ifelse(N_LTE == 1, "", paste0(Subcategory, "\n", "(", N_LTE, ")")))) +
+  geom_treemap() +
+  geom_treemap_subgroup_border(color = "grey", size = 8) +  # Thicker border for each Category
+  geom_treemap_subgroup_text(aes(label = Category_Label, 
+                                 color = ifelse(Category == "Cash Crops", "orange", "yellow")),  
+                             place = "bottomleft", grow = FALSE, reflow = TRUE, 
+                             fontface = "bold", size = 10, min.size = 4) +  # Category names in orange for Cash Crops, yellow otherwise
+  geom_treemap_text(aes(label = ifelse(N_LTE == 1, "", paste0(Subcategory, "\n", "(", N_LTE, ")")), 
+                        color = text_color), 
+                    place = "center", grow = FALSE, reflow = TRUE, size = 13) +  # Product names and counts
+  scale_fill_manual(values = distinct_colors, guide = "none") +  # Apply colors
+  scale_color_identity() +
+  theme(
+    text = element_text(family = "Arial", size = 8),
+    panel.background = element_rect(fill = "white")
+  )
+
+treemap
+
+```
+
+Some cells of the figure are to small for the product names to appear. In order to have a full view of the number of studies for each table you can also display a table. 
+
+```{r}
+
+DT::datatable(
+  DATA_split_product,
+  options = list(
+    scrollY = "400px",  # Set vertical scroll height
+    pageLength = 20     # Initial number of rows displayed
+  )
+)
+
+```
+
+
+## Commonly Measured Outcomes in LTEs
+
+The outcomes in the dataset are structured similarly to the way crops are categorized. Subindicators represent the specific outcomes measured in the studies, such as soil organic carbon or product yield. These are grouped into broader categories called indicators, which encompass related themes (e.g., "Soil Quality" and "Product Yield"). Indicators are then organized into even larger categories called subpillars, which capture overarching aspects like physical yield or economics. Finally, the subpillars are grouped into three main pillars: resilience, productivity, and mitigation, representing the highest-level categories for analysis.
+
+```{r,warning=FALSE,fig.width=8, fig.height=6,fig.align='center',message = FALSE}
+# Load and process the master sheet data
+#era_master_sheet_out_ <- read_csv("C:/Users/mlolita/OneDrive - CGIAR/ERA/ERA/Concept Scheme/Outcomes.csv")
+
+era_master_sheet_out_ <- read_csv("Outcomes.csv")
+
+# Merge and process outcome data with hierarchical structure
+DATA_OUTCOMES <- filtered_Tables$Out.Out %>%
+  left_join(era_master_sheet_out_, by = c("Out.Subind" = "Subindicator")) %>%
+  dplyr::select(LTE.ID, B.Code, Pillar, Subpillar, Indicator, Out.Subind) %>%
+  distinct() %>%
+  mutate(Indicator = case_when(
+    Indicator %in% c("Labour", "Gender Equity") ~ "Labour & Gender",
+    Indicator == "Efficiency" ~ "Resource Use Efficiency",
+    Indicator == "Pest & Pathogen" ~ "Post-Harvest Losses",
+    Indicator %in% c("Economic Performance", "Costs", "Income") ~ "Economics",
+    Indicator == "Non-Product Yield" ~ "By-Product Yield",
+    TRUE ~ Indicator
+  )) %>%
+  group_by(Pillar, Subpillar, Indicator, LTE.ID) %>%
+  summarize(N_Studies = n_distinct(B.Code), .groups = 'drop') %>%
+  group_by(Pillar, Subpillar, Indicator) %>%
+  summarize(N_Studies = sum(N_Studies), N_LTE = n_distinct(LTE.ID), .groups = 'drop') %>%
+  mutate(Pillar = factor(Pillar, levels = c("Productivity", "Resilience", "Mitigation")))
+
+# Define custom colors and legend
+category_colors <- c(
+  "Biodiversity" = "#993300",
+  "By-Product Yield" = "wheat3",
+  "Carbon Stocks" = "tan4",
+  "Economics" = "wheat2",
+  "Labour & Gender" = "orangered3",
+  "Post-Harvest Losses" = "orangered2",
+  "Product Yield" = "wheat1",
+  "Resource Use Efficiency" = "coral2",
+  "Soil Quality" = "salmon2"
+)
+custom_legend_order <- c("By-Product Yield", "Economics", "Product Yield", "Biodiversity", 
+                         "Labour & Gender", "Post-Harvest Losses", "Resource Use Efficiency", 
+                         "Soil Quality", "Carbon Stocks")
+custom_studies_order <- c(9, 22, 160, 10, 4, 1, 17, 108, 14)
+
+# Compute total LTEs for each pillar
+totals_heights <- DATA_OUTCOMES %>%
+  group_by(Pillar) %>%
+  summarize(total_N_LTE = sum(N_LTE), height_for_total = total_N_LTE + 10)
+
+# Create the plot
+outcomes <- ggplot(DATA_OUTCOMES, aes(x = Pillar, y = N_LTE, fill = Indicator)) +
+  geom_col(width = 0.9) +
+  geom_text(data = totals_heights, aes(x = Pillar, y = height_for_total, label = total_N_LTE), 
+            inherit.aes = FALSE, size = 5, vjust = -0.2) +
+  labs(x = NULL, y = "Number of LTEs") +
+  scale_fill_manual(
+    values = category_colors,
+    breaks = custom_legend_order,
+    labels = paste(custom_legend_order, " (", custom_studies_order, ")", sep = "")
+  ) +
+  scale_y_continuous(limits = c(0, 220), expand = c(0, 0)) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+    axis.line.y = element_blank(),
+    axis.text.y = element_text(size = 12),
+    axis.ticks.y = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    legend.position = c(1, 1),
+    legend.justification = c(1, 1),
+    legend.box = "vertical"
+  ) +
+  labs(fill = "Outcome Indicator")
+
+# Display the plot
+print(outcomes)
+
+```
+
+Some Long-Term Experiments (LTEs) measure multiple outcomes within a single experiment. Although we have data for 181 LTEs, the total counts in our analysis may exceed this number. This is because a single LTE can assess multiple outcomes, such as both by-product yield and product yield, resulting in the experiment being counted for each outcome it measures. To provide a clearer and more intuitive visualization, we can unstack the bars in the graph to differentiate between overlapping measurements.
+
+```{r fig.align='center', fig.height=4, message=FALSE, warning=FALSE}
+# Determine maximum y values and custom x positions for each Pillar
+max_values <- DATA_OUTCOMES %>%
+  group_by(Pillar) %>%
+  summarize(
+    max_y = max(N_LTE) + 17,  # Adjust spacing above the bar
+    x_position = case_when(
+      Pillar == "Productivity" ~ 2,
+      Pillar == "Resilience" ~ 3,
+      Pillar == "Mitigation" ~ 1
+    )
+  )
+
+# Create faceted plot with annotations
+disagregated_outcome <- ggplot(DATA_OUTCOMES, aes(x = Indicator, y = N_LTE, fill = Indicator)) +
+  geom_col(width = 0.9) +
+  labs(x = NULL, y = "Number of LTEs") +
+  scale_fill_manual(
+    values = category_colors,
+    breaks = custom_legend_order,
+    labels = paste(custom_legend_order, " (", custom_studies_order, ")", sep = "")
+  ) +
+  scale_y_continuous(limits = c(0, 190), expand = c(0, 0)) +
+  facet_wrap(~Pillar, scales = "free_x") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
+    axis.line.y = element_blank(),
+    axis.text.y = element_text(size = 12),
+    axis.ticks.y = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    strip.text = element_blank(),
+    legend.position = "none"
+  ) +
+  labs(fill = "Outcome Indicator") +
+  
+  # Add count labels on top of each bar
+  geom_text(
+    aes(label = N_LTE),
+    vjust = -0.5,
+    size = 3.5
+  ) +
+  
+  # Add pillar labels with custom x positions
+  geom_text(
+    data = max_values,
+    aes(x = x_position, y = max_y, label = Pillar),
+    inherit.aes = FALSE,
+    size = 4
+  )
+
+# Display the plot
+print(disagregated_outcome)
+
+
+
+
+
+
+
+
+```
+
+A valuable analysis is examining which outcomes are commonly studied together in long-term experiments. An UpSet plot can effectively visualize these outcomes combinations, revealing patterns of co-studied outcomes across LTEs.
+
+```{r fig.align='center', fig.height=6, message=FALSE, warning=FALSE}
+
+
+
+# Step 2: Merge and process outcome data with hierarchical structure
+DATA_OUTCOMES <- filtered_Tables$Out.Out %>%
+  left_join(era_master_sheet_out_, by = c("Out.Subind" = "Subindicator")) %>%
+  dplyr::select(LTE.ID, B.Code, Pillar, Subpillar, Indicator, Out.Subind) %>%
+  distinct() %>%
+  mutate(Indicator = case_when(
+    Indicator %in% c("Labour", "Gender Equity") ~ "Labour & Gender",
+    Indicator == "Efficiency" ~ "Resource Use Efficiency",
+    Indicator == "Pest & Pathogen" ~ "Post-Harvest Losses",
+    Indicator %in% c("Economic Performance", "Costs", "Income") ~ "Economics",
+    Indicator == "Non-Product Yield" ~ "By-Product Yield",
+    TRUE ~ Indicator
+  ))
+
+DATA_OUTCOMES<-DATA_OUTCOMES%>%
+  dplyr::select(LTE.ID,Pillar, Subpillar, Indicator)%>%
+  distinct()
+
+# Step 3: Create list of indicators for each LTE.ID
+indicator_list <- DATA_OUTCOMES %>%
+  group_by(LTE.ID) %>%
+  summarise(Indicators = list(unique(Indicator))) %>%
+  pull(Indicators)
+
+# Step 4: Prepare data for UpSet plot
+# Convert the list of indicators into a format compatible with UpSetR's fromList function
+indicator_list_named <- list()
+for (ind in unique(DATA_OUTCOMES$Indicator)) {
+  indicator_list_named[[ind]] <- DATA_OUTCOMES %>%
+    filter(Indicator == ind) %>%
+    distinct(LTE.ID) %>%
+    pull(LTE.ID)
+}
+
+# Step 5: Generate the UpSet plot
+upset_plot_outcome <- upset(
+  fromList(indicator_list_named),
+  order.by = c("degree", "freq"),        # Order intersections by degree and then by frequency
+  decreasing = c(TRUE, TRUE),            # Sort both degree and frequency in descending order
+  nsets = length(indicator_list_named),  # Display all indicators in set size bars
+  nintersects = 12,                      # Show all intersections and let the order be controlled by degree and freq
+  keep.order = FALSE,                    # Automatically order sets by size unless specified
+  sets = names(indicator_list_named),
+  mainbar.y.label = "Number of LTEs by Outcomes",
+  sets.x.label = "Total LTEs by Indicator",
+  point.size = 3.5,
+  line.size = 2,
+  text.scale = c(1.3, 1.3, 1, 1, 2, 3)
+)
+
+
+# Plot the UpSet graph
+print(upset_plot_outcome)
+
+
+
+```
+
+Key Components of an UpSet Plot : 
+
+- The bar chart at the top represents the size of the intersections between the measured outcomes. Each bar corresponds to a specific combination of outcomes 
+- Intersection Matrix (Bottom):The grid-like matrix below the bar chart shows which sets are included in each intersection.
+- Set Size Bar Chart (Side): A vertical bar chart on the side shows the total size of each individual set. This helps you understand the overall size of each set before examining intersections.
+
+
+## Analyzing Practice Combinations in LTEs
+
+The UpSet plot provides insights into which practices are commonly studied together and highlights the frequency at which each practice is studied independently.
+
+```{r fig.align='center', fig.height=6, message=FALSE, warning=FALSE}
+
+
+# Create a function to count LTEs for each practice and pull LTE IDs
+count_and_pull_lte <- function(data, column = "LTE.ID") {
+  lte_ids <- data %>%
+    distinct(!!sym(column)) %>%
+    pull(!!sym(column))
+  
+  lte_count <- length(lte_ids)
+  
+  list(count = lte_count, ids = lte_ids)
+}
+
+# Calculate LTE counts for each practice and pull corresponding LTE IDs
+rotation <- count_and_pull_lte(filtered_Tables$Rot.Out)
+intercropping <- count_and_pull_lte(filtered_Tables$Int.Out)
+irrigation <- count_and_pull_lte(filtered_Tables$Irrig.Method)
+mulch <- count_and_pull_lte(filtered_Tables$Res.Method)
+agroforestry <- count_and_pull_lte(filtered_Tables$AF.Out)
+
+tillage <- filtered_Tables$MT.Out %>%
+  filter(grepl("No or Zero Tillage", Till.Practice)) %>%
+  distinct(LTE.ID) %>%
+  pull(LTE.ID)
+
+tillage_count <- length(tillage)
+
+
+
+
+# Count LTEs with only "Improved" varieties
+improved_var_lte <- filtered_Tables$Var.Out %>%
+  filter(grepl("Improved", V.Crop.Practice)) %>%
+  distinct(LTE.ID) %>%
+  pull(LTE.ID)
+
+improved_only_count <- length(improved_var_lte)
+
+
+
+# Count LTEs with organic fertilizers (excluding specific categories)
+organic_lte <- filtered_Tables$Fert.Method %>%
+  filter(
+    !grepl("Inorganic", F.Category) &
+    !grepl("MicroNutrient", F.Category) &
+    !grepl("Unspecified", F.Category)
+  ) %>%
+  distinct(LTE.ID) %>%
+  pull(LTE.ID)
+
+organic_count <- length(organic_lte)
+
+# Identify LTEs comparing different levels of inorganic fertilizer
+inorganic_levels_LTEs <- filtered_Tables$Fert.Method %>%
+  filter(grepl("Inorganic", F.Category)) %>%
+  group_by(LTE.ID) %>%
+  summarise(level_count = n_distinct(F.Level.Name)) %>%
+  filter(level_count > 1) %>%
+  pull(LTE.ID)
+
+inorganic_levels_count <- length(inorganic_levels_LTEs)
+
+
+
+# Deduce the overlap from others
+inorganic_levels_count <- length(inorganic_levels_LTEs)
+
+# Summarize the LTE counts for each practice
+lte_summary <- tibble(
+  Practice = c(
+    "Rotation", "Intercropping", "Irrigation", "Tillage", "Mulch", "Agroforestry", "Improved Varieties","Organic Fertilizers", "Inorganic Fertilizers"
+  ),
+  LTE_Count = c(
+    rotation$count, intercropping$count, irrigation$count, tillage_count, mulch$count,
+    agroforestry$count, improved_only_count,
+    organic_count, inorganic_levels_count
+  )
+)
+
+# Step 2: Create a list of solo practices with corresponding LTE IDs
+solo_practice_list <- list(
+  Rotation = rotation$ids,
+  Intercropping = intercropping$ids,
+  Irrigation = irrigation$ids,
+  Tillage = tillage,
+  Mulch = mulch$ids,
+  Agroforestry = agroforestry$ids,
+  "Improved Varieties" = improved_var_lte,
+  "Organic Fertilizers" = organic_lte,
+  "Inorganic Fertilizers" = inorganic_levels_LTEs
+)
+
+# Step 3: Convert the practice list to a combination matrix and create the UpSet plot
+upset_plot_prac<- upset(
+  fromList(solo_practice_list),
+  order.by = "freq",
+  nsets = length(solo_practice_list), # Use all solo practices as set size bars
+  nintersects = 11, # Show all intersections
+  keep.order = FALSE, # Maintain the order of sets as they appear in set_list
+  sets = names(solo_practice_list), # All solo practices have set size bars
+  mainbar.y.label = "Number of LTEs",
+  sets.x.label = "Total LTEs by Practice",
+  point.size = 3.5,
+  line.size = 2,
+  text.scale = c(1.3, 1.3, 1, 1, 2, 3)
+)
+
+# Plot the UpSet graph
+print(upset_plot_prac)
+
+
+
+#ggsave("upset.png", upset_plot, width = 15, height = 10, dpi = 500)
+
+```
+
+## Additional Information by Country and Practice
+
+```{r,warning=FALSE}
+combined_summary <- site_data %>%
+  dplyr::select(LTE.ID, Country) %>%
+  distinct() %>%
+  left_join(
+    bind_rows(
+      filtered_Tables$Rot.Out %>% mutate(Practice = "Rotation") %>% dplyr::select(LTE.ID, Practice),
+      filtered_Tables$Int.Out %>% mutate(Practice = "Intercropping") %>% dplyr::select(LTE.ID, Practice),
+      filtered_Tables$Irrig.Method %>% mutate(Practice = "Irrigation") %>% dplyr::select(LTE.ID, Practice),
+      filtered_Tables$Till.Out %>% mutate(Practice = "Tillage") %>% dplyr::select(LTE.ID, Practice),
+      filtered_Tables$Res.Method %>% mutate(Practice = "Mulch") %>% dplyr::select(LTE.ID, Practice),
+      filtered_Tables$AF.Out %>% mutate(Practice = "Agroforestry") %>% dplyr::select(LTE.ID, Practice),
+      filtered_Tables$Var.Out %>% filter(grepl("Improved", V.Crop.Practice) & grepl("Unimproved", V.Crop.Practice)) %>% mutate(Practice = "Improved and Unimproved Varieties") %>% dplyr::select(LTE.ID, Practice),
+      filtered_Tables$Var.Out %>% filter(grepl("Improved", V.Crop.Practice)) %>% mutate(Practice = "Improved Varieties") %>% dplyr::select(LTE.ID, Practice),
+      filtered_Tables$Var.Out %>% filter(grepl("Unimproved", V.Crop.Practice)) %>% mutate(Practice = "Unimproved Varieties") %>% dplyr::select(LTE.ID, Practice),
+      filtered_Tables$Fert.Method %>% filter(grepl("Inorganic", F.Category)) %>% mutate(Practice = "Inorganic Fertilizer") %>% dplyr::select(LTE.ID, Practice),
+      filtered_Tables$Fert.Method %>% filter(!grepl("Inorganic|MicroNutrient|Unspecified", F.Category)) %>% mutate(Practice = "Organic Fertilizers") %>% dplyr::select(LTE.ID, Practice)
+    ),
+    by = "LTE.ID"
+  )
+
+summary_by_country_practice <- combined_summary %>%
+  group_by(Country, Practice) %>%
+  summarise(N_LTEs = n_distinct(LTE.ID)) %>%
+  ungroup()
+
+
+DT::datatable(
+  summary_by_country_practice,
+  options = list(
+    scrollY = "400px",  # Set vertical scroll height
+    pageLength = 20     # Initial number of rows displayed
+  )
+)
+
+
+
+```
+
+
+# Exploring climate data 
+
+This section features interactive visualizations that allow you to explore climate data for selected locations. You can choose a specific location and variable (e.g., precipitation or temperature) to view the corresponding climate trends. A dashed black line represents the historical mean for the selected variable, while red bars indicate abnormal climate years for the chosen variable and location.
+
+If you select a crop, its climate requirements will be displayed as red dashed lines, highlighting the ideal range for that crop. Additionally, you have the option to display yield data, calculated based on all available yield information for the selected location and crop.
+
+```{r,message=FALSE,message=FALSE,warning=FALSE}
+load("C:/Users/mlolita/OneDrive - CGIAR/ERA/ERA/Data/Large Files/POWER.CHIRPS.RData")
+
+# Step 1: Filter out aggregated sites
+filtered_sites <- filtered_Tables$Site.Out %>%
+  filter(!grepl("\\.\\.", Site.ID)) %>%  # Exclude rows where Site.ID contains '..'
+  mutate(
+    Site.LatD = as.numeric(Site.LatD),  # Ensure numeric latitude
+    Site.LonD = as.numeric(Site.LonD),  # Ensure numeric longitude
+    LatLon = paste0(round(Site.LatD, 4), ";", round(Site.LonD, 4))  # Create LatLon key
+  ) %>%
+  select( LatLon, Country, Site.ID) %>%
+  distinct()
+
+# Step 2: Prepare precipitation and temperature data
+climate_summary <- POWER.CHIRPS %>%
+  mutate(
+    Latitude = as.numeric(Latitude),  # Ensure numeric latitude
+    Longitude = as.numeric(Longitude),  # Ensure numeric longitude
+    LatLon = paste0(round(Latitude, 4), ";", round(Longitude, 4))  # Create LatLon key
+  ) %>%
+  group_by(LatLon, Year) %>%
+  summarise(
+    total_precip = sum(Rain, na.rm = TRUE),  # Sum precipitation
+    mean_temp = mean(Temp.Mean, na.rm = TRUE),  # Calculate mean temperature
+    .groups = 'drop'
+  )
+historical_means <- climate_summary %>%
+  group_by(LatLon) %>%
+  summarise(
+    historical_precip = mean(total_precip, na.rm = TRUE),
+    sd_precip = sd(total_precip, na.rm = TRUE),
+    historical_temp = mean(mean_temp, na.rm = TRUE),
+    sd_temp = sd(mean_temp, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Step 4: Merge site and climate data
+filtered_climate_data <- filtered_sites %>%
+  inner_join(climate_summary, by = "LatLon") %>%
+  inner_join(historical_means, by = "LatLon") %>%
+  mutate(Site = paste(Country, ",", Site.ID, ",", LatLon)) %>%
+  mutate(
+    is_hazard_precip = abs(total_precip - historical_precip) > 2 * sd_precip,
+    is_hazard_temp = abs(mean_temp - historical_temp) > 2 * sd_temp
+  )%>%
+  distinct()
+
+
+```
+
+
+```{r,message=FALSE,warning=FALSE}
+# Climate requirements data
+climate_requirements <- list(
+  `Bambara Nut` = list(
+    min_rainfall = 600,
+    max_rainfall = 1200,
+    min_temp = 21,
+    max_temp = 35,
+    critical_stages = c("Pod Development")
+  ),
+  Barley = list(
+    min_rainfall = 350,
+    max_rainfall = 800,
+    min_temp = 8,
+    max_temp = 20,
+    critical_stages = c("Tillering", "Flowering")
+  ),
+  `Black Gram` = list(
+    min_rainfall = 400,
+    max_rainfall = 600,
+    min_temp = 22,
+    max_temp = 32,
+    critical_stages = c("Pod Formation")
+  ),
+  Cassava = list(
+    min_rainfall = 500,
+    max_rainfall = 5000,
+    min_temp = 22,
+    max_temp = 33,
+    critical_stages = c("Early Growth", "Canopy Development")
+  ),
+  Chickpea = list(
+    min_rainfall = 400,
+    max_rainfall = 800,
+    min_temp = 10,
+    max_temp = 24,
+    critical_stages = c("Flowering", "Pod Formation")
+  ),
+  Cocoa = list(
+    min_rainfall = 1200,
+    max_rainfall = 3000,
+    min_temp = 21,
+    max_temp = 28,
+    critical_stages = c("Canopy Development")
+  ),
+  `Common Bean` = list(
+    min_rainfall = 400,
+    max_rainfall = 500,
+    min_temp = 21,
+    max_temp = 26,
+    critical_stages = c("Flowering", "Pod Filling")
+  ),
+  Cotton = list(
+    min_rainfall = 700,
+    max_rainfall = 1200,
+    min_temp = 25,
+    max_temp = 35,
+    critical_stages = c("Flowering", "Boll Formation")
+  ),
+  Cowpea = list(
+    min_rainfall = 300,
+    max_rainfall = 500,
+    min_temp = 24,
+    max_temp = 31.5,
+    critical_stages = c("Emergence", "Pod Formation")
+  ),
+  `Durum Wheat` = list(
+    min_rainfall = 350,
+    max_rainfall = 800,
+    min_temp = 10,
+    max_temp = 24,
+    critical_stages = c("Grain Filling")
+  ),
+  `Ethiopian Mustard` = list(
+    min_rainfall = 400,
+    max_rainfall = 700,
+    min_temp = 15,
+    max_temp = 25,
+    critical_stages = c("Flowering", "Pod Formation")
+  ),
+  `Finger Millet` = list(
+    min_rainfall = 400,
+    max_rainfall = 900,
+    min_temp = 22,
+    max_temp = 30,
+    critical_stages = c("Vegetative", "Grain Filling")
+  ),
+  Grape = list(
+    min_rainfall = 600,
+    max_rainfall = 1200,
+    min_temp = 10,
+    max_temp = 30,
+    critical_stages = c("Fruit Setting", "Ripening")
+  ),
+  Groundnut = list(
+    min_rainfall = 400,
+    max_rainfall = 1200,
+    min_temp = 24,
+    max_temp = 30,
+    critical_stages = c("Flowering", "Pod Development")
+  ),
+  `Jute Mallow` = list(
+    min_rainfall = 500,
+    max_rainfall = 1000,
+    min_temp = 25,
+    max_temp = 35,
+    critical_stages = c("Leaf Development")
+  ),
+  Lentil = list(
+    min_rainfall = 300,
+    max_rainfall = 500,
+    min_temp = 8,
+    max_temp = 22,
+    critical_stages = c("Flowering", "Pod Filling")
+  ),
+  Maize = list(
+    min_rainfall = 500,
+    max_rainfall = 1200,
+    min_temp = 18,
+    max_temp = 32,
+    critical_stages = c("Flowering", "Grain Filling")
+  ),
+  `Mung Bean` = list(
+    min_rainfall = 400,
+    max_rainfall = 600,
+    min_temp = 22,
+    max_temp = 30,
+    critical_stages = c("Pod Formation", "Maturity")
+  ),
+  Okra = list(
+    min_rainfall = 500,
+    max_rainfall = 1000,
+    min_temp = 20,
+    max_temp = 30,
+    critical_stages = c("Fruit Development")
+  ),
+  `Peach & Nectarine` = list(
+    min_rainfall = 500,
+    max_rainfall = 800,
+    min_temp = 15,
+    max_temp = 25,
+    critical_stages = c("Fruit Setting")
+  ),
+  `Pearl Millet` = list(
+    min_rainfall = 400,
+    max_rainfall = 700,
+    min_temp = 25,
+    max_temp = 30,
+    critical_stages = c("Early Growth", "Grain Filling")
+  ),
+  `Pigeon Pea` = list(
+    min_rainfall = 500,
+    max_rainfall = 1000,
+    min_temp = 22,
+    max_temp = 26,
+    critical_stages = c("Flowering", "Grain Filling")
+  ),
+  Rice = list(
+    min_rainfall = 800,
+    max_rainfall = 1500,
+    min_temp = 24,
+    max_temp = 30,
+    critical_stages = c("Tillering", "Flowering")
+  ),
+  Sorghum = list(
+    min_rainfall = 400,
+    max_rainfall = 900,
+    min_temp = 23,
+    max_temp = 31,
+    critical_stages = c("Reproductive Stage", "Flowering")
+  ),
+  Soybean = list(
+    min_rainfall = 350,
+    max_rainfall = 1100,
+    min_temp = 18,
+    max_temp = 29,
+    critical_stages = c("Mid-Season", "Pod Filling")
+  ),
+  Sunflower = list(
+    min_rainfall = 500,
+    max_rainfall = 800,
+    min_temp = 20,
+    max_temp = 28,
+    critical_stages = c("Flowering")
+  ),
+  `Sweet Potato` = list(
+    min_rainfall = 800,
+    max_rainfall = 1200,
+    min_temp = 20,
+    max_temp = 30,
+    critical_stages = c("Tuber Formation")
+  ),
+  Teff = list(
+    min_rainfall = 500,
+    max_rainfall = 1000,
+    min_temp = 15,
+    max_temp = 27,
+    critical_stages = c("Vegetative Growth")
+  ),
+  Wheat = list(
+    min_rainfall = 450,
+    max_rainfall = 1000,
+    min_temp = 10,
+    max_temp = 24,
+    critical_stages = c("Flowering", "Grain Filling")
+  ),
+  `Wheat-Barley` = list(
+    min_rainfall = 400,
+    max_rainfall = 900,
+    min_temp = 8,
+    max_temp = 24,
+    critical_stages = c("Flowering")
+  ),
+  Yam = list(
+    min_rainfall = 1000,
+    max_rainfall = 1500,
+    min_temp = 25,
+    max_temp = 32,
+    critical_stages = c("Tuber Growth")
+  )
+)
+
+
+climate_requirements_df <- do.call(rbind, lapply(names(climate_requirements), function(crop) {
+  data <- climate_requirements[[crop]]
+  data.frame(
+    Crop = crop,
+    Min_Rainfall = data$min_rainfall,
+    Max_Rainfall = data$max_rainfall,
+    Min_Temperature = data$min_temp,
+    Max_Temperature = data$max_temp,
+    Critical_Stages = paste(data$critical_stages, collapse = ", ")
+  )
+}))
+
+```
+
+```{r}
+
+  yield_data <- filtered_Tables$Data.Out %>%
+  filter(Out.Subind == "Crop Yield") %>%
+  dplyr::select(Time, Site.ID, Site.LatD, Site.LonD, P.Product, Out.Subind, Out.Code.Joined, ED.Mean.T, ED.Error) %>%
+  mutate(
+    Site.LatD = as.numeric(Site.LatD),  # Ensure numeric latitude
+    Site.LonD = as.numeric(Site.LonD),  # Ensure numeric longitude
+    LatLon = paste0(round(Site.LatD, 4), ";", round(Site.LonD, 4))  # Create LatLon key
+  )
+
+# Unit conversions
+unit_conversions <- list(
+  "Crop Yield..t/ha" = 1,
+  "Crop Yield..Mg/ha" = 1,
+  "Crop Yield..kg/ha" = 0.001,
+  "Crop Yield..q/ha" = 0.1,
+  "Crop Yield..t/ha/yr" = 1,
+  "Crop Yield..Mg/ha/yr" = 1,
+  "Crop Yield..t/ha DM" = 1,
+  "Crop Yield..Mg DM/ha" = 1,
+  "Crop Yield..kg DM/ha" = 0.001,
+  "Crop Yield..t/ha..fresh" = 1,
+  "Crop Yield..Mg/ha..dry matter" = 1
+)
+
+yield_data_processed <- yield_data %>%
+  mutate(
+    Conversion_Factor = sapply(
+      Out.Code.Joined,
+      function(unit) if (unit %in% names(unit_conversions)) unit_conversions[[unit]] else NA
+    ),
+    ED.Mean.T = ED.Mean.T * Conversion_Factor,  # Apply conversion
+    Out.Code.Joined = gsub("\\..*?$", "", Out.Code.Joined)  # Remove unit descriptors
+  ) %>%
+  filter(!is.na(Conversion_Factor))  # Keep rows with valid conversions
+
+yield_data_processed <- yield_data_processed %>%
+  filter(!grepl("\\.\\.", Time)) %>%  # Exclude invalid years
+  filter(!grepl("/", Time)) %>%  # Exclude rows with '/' in product names
+  mutate(
+    Year = floor(as.numeric(Time)),  # Extract base year
+    Season = as.numeric(gsub(".*\\.", "", Time)),  # Extract season (if applicable)
+    Weighted_Mean = ED.Mean.T,  # Mean yield
+    Error = ED.Error  # Error
+  ) %>%
+  group_by(P.Product, Site.ID, Year, LatLon) %>%  # Group by LatLon to preserve it
+  summarise(
+    Mean_Yield = sum(Weighted_Mean, na.rm = TRUE),  # Sum seasonal data
+    Mean_Error = sqrt(sum(Error^2, na.rm = TRUE)),  # Combine errors
+    .groups = "drop"
+  )
+
+```
+
+
+
+```{r,message=FALSE,warning=FALSE}
+
+library(shiny)
+library(dplyr)
+library(ggplot2)
+
+# UI
+ii <- fluidPage(
+  sidebarLayout(
+    sidebarPanel(
+      selectizeInput("site_id", "Select Site:", choices = NULL),
+      selectInput("variable", "Select Variable:", choices = c("Precipitation" = "total_precip", "Temperature" = "mean_temp")),
+      selectInput("crop", "Select Crop (Optional):", choices = NULL),
+      checkboxInput("show_yields", "Show Yield Data", value = FALSE), # Checkbox to show yield data
+      tags$hr(), # Separator line
+      tags$p(
+        "Plot Legend:",
+        tags$ul(
+          tags$li(tags$b("Black dashed line:"), " Historical mean."),
+          tags$li(tags$b("Red dashed line:"), " Crop requirements."),
+          tags$li(tags$b("Grey bars:"), " Normal years."),
+          tags$li(tags$b("Red bars:"), " Abnormal climate years.")
+        )
+      )
+    ),
+    mainPanel(
+      plotOutput("climatePlot"),
+      conditionalPanel(
+        condition = "input.show_yields == true",
+        plotOutput("yieldPlot")
+      ),
+      tableOutput("climateSummary")
+    )
+  )
+)
+
+
+# Server
+server <- function(input, output, session) {
+  
+  # Populate site and crop choices
+  observe({
+    updateSelectizeInput(session, "site_id", choices = unique(filtered_climate_data$Site), server = TRUE)
+    updateSelectInput(session, "crop", choices = c("", unique(climate_requirements_df$Crop)))
+  })
+
+  # Reactive filtered climate data
+  filtered_data <- reactive({
+    req(input$site_id)
+    filtered <- filtered_climate_data %>%
+      filter(Site == input$site_id) %>%
+      mutate(
+        hazard = if (input$variable == "total_precip") is_hazard_precip else is_hazard_temp,
+        bar_color = ifelse(hazard, "red", "lightgrey")
+      )
+    filtered
+  })
+
+  # Reactive crop requirements
+  crop_requirements <- reactive({
+    if (input$crop == "") return(NULL)
+    crop_req <- climate_requirements_df %>% filter(Crop == input$crop)
+    crop_req
+  })
+
+  # Reactive historical mean
+  site_historical_mean <- reactive({
+    filtered_data() %>%
+      summarise(mean_value = if (input$variable == "total_precip") historical_precip[1] else historical_temp[1]) %>%
+      pull(mean_value)
+  })
+
+  # Reactive yield data
+  yield_data_filtered <- reactive({
+    req(input$site_id, input$crop)
+    yield_data_processed %>%
+      filter(
+        LatLon %in% unique(filtered_data()$LatLon),  # Match location
+        P.Product == input$crop                    # Match crop
+      ) %>%
+      arrange(Year)
+  })
+
+  # Plot output for climate data
+  output$climatePlot <- renderPlot({
+    crop_req <- crop_requirements()
+    filtered_climate <- filtered_data()
+
+    if (is.null(filtered_climate) || nrow(filtered_climate) == 0) {
+      return(ggplot() + labs(title = "No Data Available"))
+    }
+
+    climate_plot <- ggplot(filtered_climate, aes(x = Year, y = get(input$variable), fill = bar_color)) +
+      geom_bar(stat = "identity", show.legend = FALSE) +
+      scale_fill_identity() +
+      geom_hline(
+        yintercept = site_historical_mean(),
+        color = "black",
+        linetype = "dashed",
+        size = 1
+      ) +
+      labs(
+        title = paste("Annual", input$variable, "for Site:", input$site_id),
+        subtitle = ifelse(input$crop == "", "No Crop Selected", paste("Crop:", input$crop)),
+        x = "Year",
+        y = ifelse(input$variable == "total_precip", "Total Precipitation (mm)", "Mean Temperature (°C)")
+      ) +
+      theme_minimal()
+
+    if (!is.null(crop_req)) {
+      climate_plot <- climate_plot +
+        geom_hline(
+          yintercept = ifelse(input$variable == "total_precip", crop_req$Min_Rainfall, crop_req$Min_Temperature),
+          color = "red",
+          linetype = "dashed",
+          size = 1
+        ) +
+        geom_hline(
+          yintercept = ifelse(input$variable == "total_precip", crop_req$Max_Rainfall, crop_req$Max_Temperature),
+          color = "red",
+          linetype = "dashed",
+          size = 1
+        )
+    }
+
+    climate_plot
+  })
+
+  # Plot output for yield data
+  output$yieldPlot <- renderPlot({
+    yield_filtered <- yield_data_filtered()
+    if (is.null(yield_filtered) || nrow(yield_filtered) == 0) {
+      return(ggplot() + labs(title = "No Yield Data Available"))
+    }
+
+    ggplot(yield_filtered, aes(x = Year, y = Mean_Yield)) +
+      geom_line(color = "blue") +
+      geom_point(color = "blue") +
+      geom_errorbar(aes(ymin = Mean_Yield - Mean_Error, ymax = Mean_Yield + Mean_Error), width = 0.2) +
+      labs(
+        title = paste("Annual Yield for Crop:", input$crop),
+        x = "Year",
+        y = "Yield (t/ha)"
+      ) +
+      theme_minimal()
+  })
+
+  # Table output for climate summary
+  output$climateSummary <- renderTable({
+    filtered_data() %>%
+      select(Year, total_precip, mean_temp, hazard) %>%
+      rename(
+        "Year" = Year,
+        "Total Precipitation (mm)" = total_precip,
+        "Mean Temperature (°C)" = mean_temp,
+        "Abnormal climate" = hazard
+      )
+  })
+}
+
+# Run the app
+shinyApp(ui = ii, server = server)
+
+
+```
