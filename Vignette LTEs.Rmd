@@ -18,11 +18,7 @@ knitr::opts_chunk$set(
   comment = "#>")
 
 # Please run getwd() in the console to get the project location and copy into the line below
-root.dir <- "C:/Users/mlolita/OneDrive - CGIAR/ERA/LTEs 2024/script/vignettes"
-knitr::opts_knit$set(root.dir = root.dir)
-
-
-
+setwd("C:/Users/mlolita/OneDrive - CGIAR/ERA/LTEs 2024/script/vignettes")
 
 ```
 
@@ -142,6 +138,8 @@ The code used to generate and compile the dataset from the excel files is in the
 
 ## Download data from s3 bucket
 Data is available and can be downloaded from the S3 Bucket as it follows : 
+
+
 
 ```{r}
 #download most recent version of the data 
@@ -1035,7 +1033,7 @@ This section features interactive visualizations that allow you to explore clima
 If you select a crop, its climate requirements will be displayed as red dashed lines, highlighting the ideal range for that crop. Additionally, you have the option to display yield data, calculated based on all available yield information for the selected location and crop.
 
 ```{r,message=FALSE,message=FALSE,warning=FALSE}
-load("C:/Users/mlolita/OneDrive - CGIAR/ERA/ERA/Data/Large Files/POWER.CHIRPS.RData")
+load("POWER.CHIRPS.RData")
 
 # Step 1: Filter out aggregated sites
 filtered_sites <- filtered_Tables$Site.Out %>%
