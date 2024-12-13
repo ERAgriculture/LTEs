@@ -1033,8 +1033,8 @@ This section features interactive visualizations that allow you to explore clima
 If you select a crop, its climate requirements will be displayed as red dashed lines, highlighting the ideal range for that crop. Additionally, you have the option to display yield data, calculated based on all available yield information for the selected location and crop.
 
 ```{r,message=FALSE,message=FALSE,warning=FALSE}
-load("POWER.CHIRPS.RData")
 
+POWER.CHIRPS <- arrow::open_dataset("s3://digital-atlas/era/geodata/POWER.CHIRPS.parquet")
 # Step 1: Filter out aggregated sites
 filtered_sites <- filtered_Tables$Site.Out %>%
   filter(!grepl("\\.\\.", Site.ID)) %>%  # Exclude rows where Site.ID contains '..'
@@ -1068,6 +1068,11 @@ historical_means <- climate_summary %>%
     sd_temp = sd(mean_temp, na.rm = TRUE),
     .groups = "drop"
   )
+
+# Convert the arrow dataset to a data.frame or tibble
+climate_summary <- as.data.frame(climate_summary)
+historical_means <- as.data.frame(historical_means)
+
 
 # Step 4: Merge site and climate data
 filtered_climate_data <- filtered_sites %>%
