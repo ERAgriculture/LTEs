@@ -1,0 +1,29 @@
+---
+title: "Install ERAg"
+output: html_document
+date: "2024-12-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+#install depedencies
+install.packages(c("broom", "circular","diagis","dismo", "doSNOW", "Hmisc", "knitr", "lme4", "lmerTest", "MASS", "Matrix", "metan", "metafor", "ncdf4", "pbapply", "plyr", "raster", "sfsmisc","sp", "spatstat", "zoo"))
+
+require(devtools)
+remotes::install_version("rgeos", version = "0.6-4")
+remotes::install_version("spatstat.geom", version = "3.2-9")
+
+
+#set the directory of the project
+setwd("C:/Users/mlolita/OneDrive - CGIAR/ERA/ERA package versions")
+
+#install the package
+install.packages("ERAg_1.0.2.tar.gz", repos = NULL, type = "source")
+
+
+```
+
