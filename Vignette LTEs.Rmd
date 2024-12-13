@@ -24,7 +24,7 @@ setwd("C:/Users/mlolita/OneDrive - CGIAR/ERA/LTEs 2024/script/vignettes")
 
 
 ```{r packages,include=F,eval=T,echo=T}
-require(ERAg)
+require(ERAg) #If it is your first time downloading the ERA package follow the "Download_ERAg_Package" code.
 require(tidyr)
 require(treemap)
 require(s3fs)
