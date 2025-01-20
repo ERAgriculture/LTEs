@@ -17,36 +17,27 @@ knitr::opts_chunk$set(
   collapse = TRUE,       # Collapse code and output in chunks
   comment = "#>")
 
-# Please run getwd() in the console to get the project location and copy into the line below
-setwd("C:/Users/mlolita/OneDrive - CGIAR/ERA/LTEs 2024/script/vignettes")
 
 ```
 
 
 ```{r packages,include=F,eval=T,echo=T}
-require(ERAg) #If it is your first time downloading the ERA package follow the "Download_ERAg_Package" code.
-require(tidyr)
-require(treemap)
-require(s3fs)
-require(miceadds)
-require(readr)
-require(readxl)
-require(data.table)
-require(dplyr)
-require(ggplot2)
-require(sf)
-require(rnaturalearth)
-require(treemapify)
-require(cowplot)
-require(UpSetR)
-require(grid)
-require(viridis)
-require(tiff)
-require(raster)
-require(sp)
-require(DT)
-require(plotly)
-require(arrow)
+required_packages <- c(
+  "tidyr", "treemap", "s3fs", "miceadds", "readr", "readxl", "data.table", "dplyr",
+  "dplyr", "ggplot2", "sf", "rnaturalearth", "treemapify", "cowplot", "shiny","readxl",
+  "UpSetR", "grid", "viridis", "tiff", "raster", "sp", "DT", "plotly", "arrow"
+)
+
+if (!requireNamespace("pacman", quietly = TRUE)) {
+  install.packages("pacman")
+}
+
+pacman::p_load(char = required_packages)
+
+if(!require(ERAg)){
+  remotes::install_github(repo="https://github.com/EiA2030/ERAg",build_vignettes = T)
+  library(ERAg)
+}
 ```
 
 
@@ -111,7 +102,7 @@ As part of this update, a dedicated search for LTEs was conducted, and the extra
 
 For each paper, data from tables, text, and figures were extracted into an Excel format. Each paper was linked to a dedicated Excel file containing detailed information on the journal, authors, location, soil characteristics, duration,experimental design, practices,treatment comparisons, crops, varieties, outcomes, and measurements and more.
 
-Link to excel template:https://cgiar-my.sharepoint.com/:x:/r/personal/p_steward_cgiar_org/Documents/ERA/Data%20Entry/Data%20Entry%202023/Excel%20Template/V2.0.28%20-%20Industrious%20Elephant.xlsm?d=w7b6da0ee08c74bc5acc0567c23a2a79e&csf=1&web=1&e=LErfWY
+[Link to excel data extraction template](https://github.com/CIAT/ERA_dev/blob/main/data_entry/industrious_elephant_2023/excel_data_extraction_template/V2.0.28%20-%20Industrious%20Elephant.xlsm)
 
 ### Link to training materials
 
@@ -119,72 +110,114 @@ Enumerators participated in an intensive training program spanning 4 to 6 weeks.
 
 To further support the learning process, the training materials included a detailed breakdown of the training sessions, practical exercises, resource documents, and instructional videos. These resources offered step-by-step guidance to ensure that extractors were well-prepared for their tasks.
 
+[Link to training materials](s3://digital-atlas/era/data_entry/industrious_elephant_2023/training_materials)
+
 Following the training, ongoing support was provided through daily meetings to resolve challenges as they arose. Slack served as a platform for rapid communication and feedback, fostering collaboration among peers and project leads.
 
 Despite these efforts, occasional errors were inevitable. To uphold data quality, the Four Eyes Principle was adopted. Each article's extraction underwent a secondary review by another enumerator, a project lead, or both. This rigorous process ensured that errors were identified and corrected, maintaining a high standard of data accuracy and integrity.
 
-
-Link to training materials: https://cgiar-my.sharepoint.com/:x:/r/personal/p_steward_cgiar_org/Documents/ERA/Data%20Entry/Data%20Entry%202023/Training%Material
-
-
-### Link to extracted excels
-2018 https://cgiar-my.sharepoint.com/:x:/r/personal/p_steward_cgiar_org/Documents/ERA/Data%20Entry/Data%20Entry%2018
-2020 https://cgiar-my.sharepoint.com/:x:/r/personal/p_steward_cgiar_org/Documents/ERA/Data%20Entry/Data%20Entry%2020
-2022 https://cgiar-my.sharepoint.com/:x:/r/personal/p_steward_cgiar_org/Documents/ERA/Data%20Entry/Data%20Entry%2022/Data
-2023 https://cgiar-my.sharepoint.com/:x:/r/personal/p_steward_cgiar_org/Documents/ERA/Data%20Entry/Data%20Entry%2023/Data
+### Link to data extracted from publications using ERA extraction templates
+[2020 majestic_hippo](s3://digital-atlas/era/data_entry/majestic_hippo_2020/excel_files/majestic_hippo_2020.zip). 
+[2022 skinny_cow](s3://digital-atlas/era/data_entry/skinny_cow_2022/excel_files/skinny_cow_2022.zip)
+[2023 industrious_elephant](s3://digital-atlas/era/data_entry/industrious_elephant_2023/excel_files/industrious_elephant_2023.zip)
 
 ## How data were imported
-### Link to github
-The code used to generate and compile the dataset from the excel files is in the ERAg R package using R 4.2.1 (R Development Team) and may be downloaded from GitHub https://github.com/EiA2030/ERAg. 
+### ERA github
 
-## Download data from s3 bucket
-Data is available and can be downloaded from the S3 Bucket as it follows : 
+The code used to import and compile the dataset from the excel files is in the ERAg R package using R 4.2.1 (R Development Team) and may be downloaded from GitHub https://github.com/CIAT/ERA_dev. This github is under continual development.  
+  
+Here are some examples of the types of functionality provided and documented:
 
+- [Import data from excels](https://github.com/CIAT/ERA_dev/tree/main/R/import)
+- [Comparison logic](https://github.com/CIAT/ERA_dev/tree/main/R/comparisons)
+- [Compile data from different extraction rounds into a single simplified table](https://github.com/CIAT/ERA_dev/blob/main/R/compile/compile_datasets.R)
+- [Scripts to enrich ERA data with geospatial information](https://github.com/CIAT/ERA_dev/tree/main/R/add_geodata)
 
-
-```{r}
+## Download imported ERA data from s3 bucket
+Data is available and can be downloaded from the S3 Bucket `s3://digital-atlas/era/data/` as it follows : 
+```{r download ERA dataset}
 #download most recent version of the data 
 
 # Set up connection to S3 bucket
 s3<-s3fs::S3FileSystem$new(anonymous = T)
-  era_s3<-"s3://digital-atlas/era"
-  
-  # List the files in the s3 bucket
-  files<-s3$dir_ls(file.path(era_s3,"data"))
-  # This is the most recent version of the datas3://digital-atlas/era/data/industrious_elephant_2023-YYYY-MM-DD.RData
-  files<-tail(grep(".RData",grep("industrious_elephant_2023",files,value=T),value=T),1)
-  
-  # Set a save location for the dataset (amend to something more suitable for your needs)
-  save_path<-file.path(getwd(),basename(files))
-  
-  if(!file.exists(save_path)){
-    s3$file_download(files,save_path,overwrite = T)
-  }
-  
-  Tables<- miceadds::load.Rdata2(file=basename(save_path),path=dirname(save_path))
+era_s3<-"s3://digital-atlas/era"
 
-  
-#you can also download the data tables from the data folder directly 
-#Tables<-load.Rdata2("industrious_elephant_2023-2024-11-14.RData")
+# List the files in the s3 bucket
+files<-s3$dir_ls(file.path(era_s3,"data"))
+# This is the most recent version of the data s3://digital-atlas/era/data/industrious_elephant_2023-YYYY-MM-DD.RData
+files<-tail(grep(".RData",grep("industrious_elephant_2023",files,value=T),value=T),1)
 
+# Create a folder to store downloaded data
+download_dir<-"downloaded_data"
+if(!dir.exists(download_dir)){
+  dir.create(download_dir)
+}
+
+# Set a save location for the dataset (amend to something more suitable for your needs)
+save_path<-file.path(getwd(),download_dir,basename(files))
+
+if(!file.exists(save_path)){
+  s3$file_download(files,save_path,overwrite = T)
+}
+
+Tables<- miceadds::load.Rdata2(file=basename(save_path),path=dirname(save_path))
 ```
 
+## ERA vocabulary & meta-data
+An excel workbook called [era_master_sheet.xlsx](https://github.com/peetmate/era_codes/raw/main/era_master_sheet.xlsx) is the source of truth for the controlled ERA vocabularly. One of the most useful tabs in this workbook contains the meta-data that describes the fields in the ERA tables is called 'era_fields_v2'.
+```{r import ERA vocab}
+    era_vocab_url<-"https://github.com/peetmate/era_codes/raw/main/era_master_sheet.xlsx"
+    era_vocab_local<-file.path(getwd(),download_dir,"era_master_sheet.xlsx")
+    
+    update<-T
+    if(update){
+      download.file(era_vocab_url, era_vocab_local, mode = "wb")  # Download and write in binary mode
+    }  
+    
+  # Get names of all sheets in the workbook
+  sheet_names <- readxl::excel_sheets(era_vocab_local)
+  sheet_names<-sheet_names[!grepl("sheet|Sheet",sheet_names)]
+  
+  # Read each sheet into a list
+  master_codes <-suppressWarnings(suppressMessages(sapply(sheet_names, FUN=function(x){data.table(readxl::read_excel(era_vocab_local, sheet = x))},USE.NAMES=T)))
+```
+
+```{r show metadata}
+metadata<-master_codes$era_fields_v2[industrious_elephant_2023==T,.(Table,Field,Display_Name,Field_Description,Data_Type)]
+
+# Choose table in the data model
+selected_table<-"Pub.Out"
+
+# Add an interactive selection for the table
+table_choices <- metadata[, unique(Table)]
+selectInput("selected_table", "Select a Table:", choices = table_choices,selected = "Pub.Out")
+
+# Display the meta-data for the selected table
+renderDT({
+  DT::datatable(
+    metadata[Table == input$selected_table, !"Table"], # Dynamically filter by selected table
+    options = list(
+      scrollY = "400px",  # Set vertical scroll height
+      pageLength = 20     # Initial number of rows displayed
+    )
+  )
+})
+```
 
 ## Subsetting the data to LTEs
 
 We subset the complete dataset to focus on LTE data, selecting experiments with a duration exceeding five years. Each paper was assigned a unique identifier, while distinct long-term experiments (LTEs) were assigned a specific LTE code. This approach enabled multiple papers to be linked to a single long-term experiment, ensuring consistent tracking and analysis.
 
-```{r,message=FALSE,warning=FALSE}
-# Load unique LTEs if available
-# unique_ltes <- read_delim("C:/Users/mlolita/OneDrive - CGIAR/ERA/LTEs 2024/data/unique.ltes.csv", 
-#     delim = ";", escape_double = FALSE, trim_ws = TRUE)
+```{r unique ltes,message=FALSE,warning=FALSE}
+# Load unique LTEs
 
-unique_ltes<-readRDS("unique.ltes.rds")
-
-#merge LTE data with the table to have all the info available
+# This data can also be loaded from the ERA_dev github
+unique_ltes<-fread("https://github.com/CIAT/ERA_dev/raw/refs/heads/main/data_entry/long_term_experiments/unique.ltes.csv")
 
 # Convert `unique_ltes` to a data.table format for efficient filtering
 unique_ltes_dt <- as.data.table(unique_ltes)
+
+#merge LTE data with the table to have all the info available
 
 # Filter each table in `Tables` based on matching `B.Code` from `unique_ltes`
 filtered_Tables <- lapply(Tables, function(tbl) {
@@ -209,7 +242,7 @@ filtered_Tables <- lapply(Tables, function(tbl) {
 ```
 
 
-```{r}
+```{r number of ltes}
 # Display the number of unique publications and LTEs
 cat("Number of unique papers:", length(unique(filtered_Tables$Pub.Out$B.Code)), "\n")
 cat("Number of unique LTEs:", length(unique(filtered_Tables$Pub.Out$LTE.ID)), "\n")
@@ -220,11 +253,9 @@ cat("Number of unique LTEs:", length(unique(filtered_Tables$Pub.Out$LTE.ID)), "\
 
 The result is a collection of 41 tables, each containing specific information relevant to the dataset.
 
-```{r,message=FALSE}
-
+```{r unique names,message=FALSE}
 unique_names <- names(filtered_Tables)
 unique_names
-
 ```
 The main tables are :
 
@@ -280,14 +311,30 @@ This section provides an in-depth exploration of Long Term Experiment (LTE) data
 
 **Practice Bundles**: Analyzing common bundles of practices used in LTEs. An UpSet plot visualizes the overlap of practices across LTEs, highlighting which practices are commonly applied together.
 
+## Data Coverage
+```{r data coverage}
+pub_no<-filtered_Tables$Pub.Out[,length(unique(B.Code))]
 
+lte_no<-filtered_Tables$Pub.Out[,length(unique(LTE.ID))]
 
+country_no<-filtered_Tables$Site.Out[,length(unique(Country))]
 
-## Duration of Long-Term Experiments
+site_no<-filtered_Tables$Site.Out[,length(unique(Site.ID))]
 
-To effectively visualize the duration of Long Term Experiments, we grouped them into categorized duration ranges. This approach helps organize the experiments into manageable categories, allowing us to create a clear and easily interpretable plot, especially given the large volume of papers in our dataset. 
+observation_no<-filtered_Tables$Data.Out[,.N]
 
-```{r,warning=FALSE}
+obs_average<-filtered_Tables$Data.Out[,.(N=.N),by=.(LTE.ID,Site.ID)][,round(mean(N),0)]
+
+duration_average<-filtered_Tables$Data.Out[,.(duration=max(Exp.Duration,na.rm=T)),.(B.Code,LTE.ID)][,round(mean(duration,na.rm=T),1)]
+```
+
+The dataset of `r observation_no` individual outcomes includes a total of `r lte_no` long-term experiments (LTEs) derived from `r pub_no` unique publications. These come from `r site_no` sites in `r country_no` countries. The average number of observations per study is `r obs_average` and the average duration of LTEs is `r duration_average` years.
+
+## Duration of LTEs
+
+To effectively visualize the duration of LTES, we grouped them into categorized duration ranges. This approach helps organize the experiments into manageable categories, allowing us to create a clear and easily interpretable plot, especially given the large volume of papers in our dataset. 
+
+```{r lte duration,warning=FALSE}
 
 # Table with time data 
 times_out <- filtered_Tables$Times.Out
@@ -353,10 +400,9 @@ print(duration_plot)
 ```
 
 ## Geographic Distribution of LTEs
-
 Long Term Experiment data was collected for Africa and South Asia, with each experiment linked to a specific location through its coordinates, enabling precise mapping of the data. 
 
-```{r,warning=FALSE,fig.width=6, fig.height=4,fig.align='center'}
+```{r geog dist,warning=FALSE,fig.width=6, fig.height=4,fig.align='center'}
 
 # Extract and clean Site data from filtered_Tables
 site_data <- as.data.frame(filtered_Tables$Site.Out) %>%
@@ -440,7 +486,7 @@ DT::datatable(
 
 The products in the dataset are organized hierarchically, with each product labeled by its common or latin name and grouped into broader categories such as cereals, legumes, etc. It’s important to note that a single paper can study multiple products, which means the total number of papers represented in the treemaps exceeds the actual total number of unique papers.
 
-```{r,warning=FALSE,fig.width=6, fig.height=4,fig.align='center',message=FALSE}
+```{r products,warning=FALSE,fig.width=6, fig.height=4,fig.align='center',message=FALSE}
 
 # Prepare the data from filtered_Tables$Prod.Out
 DATA_split_product <- filtered_Tables$Prod.Out %>%
@@ -517,7 +563,7 @@ treemap
 
 ```
 
-```{r,warning=FALSE,fig.width=8, fig.height=6,fig.align='center',message=FALSE}
+```{r products 2,warning=FALSE,fig.width=8, fig.height=6,fig.align='center',message=FALSE}
 
 DATA_split_product <- filtered_Tables$Prod.Out %>%
   dplyr::select(LTE.ID, P.Product.Subtype, P.Product, B.Code) %>%
@@ -630,7 +676,7 @@ treemap
 
 Some cells of the figure are to small for the product names to appear. In order to have a full view of the number of studies for each table you can also display a table. 
 
-```{r}
+```{r products tab}
 
 DT::datatable(
   DATA_split_product,
@@ -647,11 +693,9 @@ DT::datatable(
 
 The outcomes in the dataset are structured similarly to the way crops are categorized. Subindicators represent the specific outcomes measured in the studies, such as soil organic carbon or product yield. These are grouped into broader categories called indicators, which encompass related themes (e.g., "Soil Quality" and "Product Yield"). Indicators are then organized into even larger categories called subpillars, which capture overarching aspects like physical yield or economics. Finally, the subpillars are grouped into three main pillars: resilience, productivity, and mitigation, representing the highest-level categories for analysis.
 
-```{r,warning=FALSE,fig.width=8, fig.height=6,fig.align='center',message = FALSE}
+```{r outcomes,warning=FALSE,fig.width=8, fig.height=6,fig.align='center',message = FALSE}
 # Load and process the master sheet data
-#era_master_sheet_out_ <- read_csv("C:/Users/mlolita/OneDrive - CGIAR/ERA/ERA/Concept Scheme/Outcomes.csv")
-
-era_master_sheet_out_ <- read_csv("Outcomes.csv")
+era_master_sheet_out_ <- master_codes$out
 
 # Merge and process outcome data with hierarchical structure
 DATA_OUTCOMES <- filtered_Tables$Out.Out %>%
@@ -795,7 +839,7 @@ print(disagregated_outcome)
 
 A valuable analysis is examining which outcomes are commonly studied together in long-term experiments. An UpSet plot can effectively visualize these outcomes combinations, revealing patterns of co-studied outcomes across LTEs.
 
-```{r fig.align='center', fig.height=6, message=FALSE, warning=FALSE}
+```{r outcome bundles, fig.align='center', fig.height=6, message=FALSE, warning=FALSE}
 
 
 
@@ -868,7 +912,7 @@ Key Components of an UpSet Plot :
 
 The UpSet plot provides insights into which practices are commonly studied together and highlights the frequency at which each practice is studied independently.
 
-```{r fig.align='center', fig.height=6, message=FALSE, warning=FALSE}
+```{r practice bundles, fig.align='center', fig.height=6, message=FALSE, warning=FALSE}
 
 
 # Create a function to count LTEs for each practice and pull LTE IDs
@@ -1031,11 +1075,13 @@ DT::datatable(
 
 This section features interactive visualizations that allow you to explore climate data for selected locations. You can choose a specific location and variable (e.g., precipitation or temperature) to view the corresponding climate trends. A dashed black line represents the historical mean for the selected variable, while red bars indicate abnormal climate years for the chosen variable and location.
 
-If you select a crop, its climate requirements will be displayed as red dashed lines, highlighting the ideal range for that crop. Additionally, you have the option to display yield data, calculated based on all available yield information for the selected location and crop.
+If you select a crop, its climate requirements will be displayed as red dashed lines, highlighting the ideal range for that crop. Additionally, you have the option to display yield data, calculated based on all available yield information for the selected location and crop. Climate requirement data for crops was extracted from [Concern Worlwide](https://admin.concern.net/sites/default/files/media/migrated/crop_weather_and_climate_vulnerability_profiles_.pdf)
 
-```{r,message=FALSE,message=FALSE,warning=FALSE}
+```{r climate data, message=FALSE,message=FALSE,warning=FALSE}
 
+# Here we are directly connect to cloud-storage parquet file in an S3 bucket
 POWER.CHIRPS <- arrow::open_dataset("s3://digital-atlas/era/geodata/POWER.CHIRPS.parquet")
+
 # Step 1: Filter out aggregated sites
 filtered_sites <- filtered_Tables$Site.Out %>%
   filter(!grepl("\\.\\.", Site.ID)) %>%  # Exclude rows where Site.ID contains '..'
@@ -1085,8 +1131,6 @@ filtered_climate_data <- filtered_sites %>%
     is_hazard_temp = abs(mean_temp - historical_temp) > 2 * sd_temp
   )%>%
   distinct()
-
-
 ```
 
 
@@ -1385,11 +1429,6 @@ yield_data_processed <- yield_data_processed %>%
 
 
 ```{r,message=FALSE,warning=FALSE}
-
-library(shiny)
-library(dplyr)
-library(ggplot2)
-
 # UI
 ii <- fluidPage(
   sidebarLayout(
@@ -1410,16 +1449,15 @@ ii <- fluidPage(
       )
     ),
     mainPanel(
-      plotOutput("climatePlot"),
+      plotOutput("climatePlot",height="600px"),
       conditionalPanel(
         condition = "input.show_yields == true",
-        plotOutput("yieldPlot")
+        plotOutput("yieldPlot",height="400px")
       ),
       tableOutput("climateSummary")
     )
   )
 )
-
 
 # Server
 server <- function(input, output, session) {
