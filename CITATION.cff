@@ -1,0 +1,32 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Steward
+    given-names: Peter
+    orcid: https://orcid.org/0000-0003-3985-4911
+    affiliation: Alliance of Bioversity International and CIAT
+  - family-names: Rosenstock
+    given-names: Todd
+    orcid: https://orcid.org/0000-0002-1958-9500
+    affiliation: Alliance of Bioversity International and CIAT
+  - family-names: Youngberg
+    given-names: Brayden
+    affiliation: Alliance of Bioversity International and CIAT
+  - family-names: Joshi
+    given-names: Namita
+    orcid: https://orcid.org/0009-0006-1473-7718
+    affiliation: Alliance of Bioversity International and CIAT
+  - family-names: Muller
+    given-names: Lolita
+    affiliation: Alliance of Bioversity International and CIAT
+title: CGIAR Excellence in Agronomy Long-Term Experiments Analysis Tool
+version: v1.0.0
+date-released: 2025-01-10
+doi: 10.5281/zenodo.1234567 # Replace with your actual DOI
+repository-code: https://github.com/EiA2030/ERA_ltes
+keywords:
+  - Climate Adaptation
+  - Long-Term Experiments
+  - Agronomy
+  - Data Analysis
+  - CGIAR
