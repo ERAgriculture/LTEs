@@ -32,3 +32,6 @@ To run the scripts and generate the document, ensure you have:
 
 
 Start exploring the rich insights and data of long-term experiments with this repository!
+
+<img width="623" alt="image" src="https://github.com/user-attachments/assets/bc20a868-f9ac-40cc-80a9-7b7217e859b4" />
+
