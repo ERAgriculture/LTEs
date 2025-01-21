@@ -34,7 +34,7 @@ The purpose of this repository is to:
 ### Repository Structure
 - **`ERA_ltes.Rproj`**: The R project file for organizing and managing the repository.
 - **`era_ltes.Rmd`**: The main vignette file providing an in-depth guide to analyzing LTEs.
-- **`/downloaded_data`**: Folder for data files that are downloaded by running the `era_ltes.Rmd`, including LTE and climate datasets.
+- **`downloaded_data`**: Folder for data files that are downloaded by running the `era_ltes.Rmd`, including LTE and climate datasets.
  
 ---
 
