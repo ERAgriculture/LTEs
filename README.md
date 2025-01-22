@@ -16,8 +16,7 @@ LTES cover a range of agronomic management practices and experimental outcomes:
     <img src="https://github.com/user-attachments/assets/059ee4d1-3a5b-47cd-ac7a-4a23acc452ed" alt="practices" width="45%" />
 </div>
 
-Explore the html files : 
-- [LTEs Systematic Map](http://127.0.0.1:6159/Vignette%20LTEs.Rmd)
+
   
 ## Purpose
 
