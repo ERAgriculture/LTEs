@@ -1,0 +1,610 @@
+---
+title: "LTE analysis"
+output: html_document
+date: "2025-04-07"
+---
+```{r}
+# ---- Load required packages ----
+library(data.table)
+library(miceadds)
+library(s3fs)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ERAg)
+library(dplyr)
+library(readr)
+```
+
+
+```{r}
+# ---- Step 1: Load ERA agricultural data ----
+s3 <- s3fs::S3FileSystem$new(anonymous = TRUE)
+era_s3 <- "s3://digital-atlas/era"
+
+# Get the latest Ag file
+ag_files <- s3$dir_ls(file.path(era_s3, "data"))
+latest_ag <- tail(grep("industrious_elephant_2023.*\\.RData", ag_files, value = TRUE), 1)
+
+download_dir <- "downloaded_data"
+if (!dir.exists(download_dir)) dir.create(download_dir)
+
+ag_path <- file.path(download_dir, basename(latest_ag))
+if (!file.exists(ag_path)) {
+  s3$file_download(latest_ag, ag_path, overwrite = TRUE)
+}
+Ag_data <- miceadds::load.Rdata2(file = basename(ag_path), path = dirname(ag_path))
+```
+
+
+```{r}
+# ---- Step 2: Load climate data ----
+clim_files <- s3$dir_ls(file.path(era_s3, "geodata"))
+latest_clim <- tail(grep("clim_stats_2025.*\\.RData", clim_files, value = TRUE), 1)
+
+clim_path <- file.path(download_dir, basename(latest_clim))
+if (!file.exists(clim_path)) {
+  s3$file_download(latest_clim, clim_path, overwrite = TRUE)
+}
+Climate_data <- miceadds::load.Rdata2(file = basename(clim_path), path = dirname(clim_path))
+
+
+# ---- Extract and combine nested climate tables correctly ----
+
+# Climate_data is a nested list, so we unpack and merge them
+clim_nested <- Climate_data[["PDate.SLen.EcoCrop"]]
+ #took this one becuse has the most data out of all 
+ 
+# Combine climate tables by Site.Key and year, prefixing variable names
+clim_combined <- Reduce(function(x, y) merge(x, y, by = c("Site.Key", "Year","Product","EU"), all = TRUE),
+  lapply(names(clim_nested), function(nm) {
+    dt <- copy(clim_nested[[nm]])
+
+    # Ensure consistent Year column as character
+    if ("M.Year" %in% names(dt)) setnames(dt, "M.Year", "Year")
+    if (!("Year" %in% names(dt))) dt[, Year := NA_character_]
+    dt[, Year := as.character(Year)]
+
+    group_vars <- c("Site.Key", "Year","Product","EU")
+
+    # Only numeric columns for aggregation
+    # Separate numeric and non-numeric columns
+num_cols <- names(dt)[sapply(dt, is.numeric) & !(names(dt) %in% group_vars)]
+meta_cols <- setdiff(names(dt), c(group_vars, num_cols))
+
+# Aggregate numeric data
+dt_num <- dt[, lapply(.SD, mean, na.rm = TRUE), by = group_vars, .SDcols = num_cols]
+
+# For metadata: keep first occurrence (you can change to unique() or mode() if needed)
+dt_meta <- dt[, lapply(.SD, \(x) x[1]), by = group_vars, .SDcols = meta_cols]
+
+# Combine numeric + meta
+dt <- merge(dt_num, dt_meta, by = group_vars, all = TRUE)
+
+
+    # Prefix value columns only
+    value_vars <- setdiff(names(dt), group_vars)
+    setnames(dt, value_vars, paste0(nm, ".", value_vars))
+
+    dt
+  })
+)
+
+# ---- Extract Latitude, Longitude, Code from Site.Key ----
+clim_combined[, c("Latitude", "Longitude", "Code") := tstrsplit(Site.Key, " ", fixed = TRUE)]
+clim_combined[, Latitude := round(as.numeric(Latitude), 4)]
+clim_combined[, Longitude := round(as.numeric(Longitude), 4)]
+```
+
+```{r}
+
+# ---- Flag extreme climate years by crop and site ----
+
+# Define extreme variable names and whether high values are problematic
+extreme_vars_info <- list(
+  "gdd.gdd_abovemax" = "high",
+  "temperature.tmax_tg_35.days" = "high",
+  "temperature.tmax_tg_40.days" = "high",
+  "rainfall.w_balance_negdays" = "high",
+  "eratio.eratio_l_0.5.days" = "high",
+  "logging.logging_g_ssat_0.5.days" = "high"
+)
+
+# Step 1: Compute 95th percentile thresholds per site and crop
+clim_extremes_thresholds <- clim_combined[
+  , lapply(.SD, function(x) quantile(x, probs = 0.95, na.rm = TRUE)),
+  .SDcols = names(extreme_vars_info),
+  by = .(Latitude, Longitude, Product)  # now includes Product!
+]
+
+# Step 2: Add columns to flag and explain reasons for extreme years
+clim_combined[, Extreme_Year := FALSE]
+clim_combined[, Extreme_Reason := NA_character_]
+
+# Step 3: Apply flags by merging thresholds back into main data
+for (var in names(extreme_vars_info)) {
+  clim_combined <- merge(
+    clim_combined,
+    clim_extremes_thresholds[, .(Latitude, Longitude, Product, threshold = get(var))],
+    by = c("Latitude", "Longitude", "Product"),
+    all.x = TRUE
+  )
+
+  clim_combined[
+    !is.na(get(var)) & get(var) > threshold,
+    Extreme_Reason := ifelse(
+      is.na(Extreme_Reason),
+      var,
+      paste(Extreme_Reason, var, sep = ", ")
+    )
+  ]
+
+  clim_combined[, threshold := NULL]  # clean up
+}
+
+clim_combined[, Extreme_Year := !is.na(Extreme_Reason)]
+
+```
+
+
+```{r}
+# ---- Summary of extreme years and sample size used for percentiles ----
+
+# Step 3: Count number of years (non-NA) used per site per variable
+clim_extreme_counts <- clim_combined[
+  , lapply(.SD, function(x) sum(!is.na(x))),
+  .SDcols = names(extreme_vars_info),
+  by = .(Latitude, Longitude, Product)
+]
+
+
+# Rename columns for clarity
+setnames(clim_extreme_counts,
+         old = names(extreme_vars_info),
+         new = paste0("N_obs_", names(extreme_vars_info)))
+
+# Step 4: Summarize extreme years and reasons per site
+clim_extreme_summary <- clim_combined[
+  Extreme_Year == TRUE,
+  .(
+    N_extreme_years = .N,
+    Extreme_Years = paste(sort(unique(Year)), collapse = ", "),
+    Reasons = paste(unique(unlist(strsplit(Extreme_Reason, ", "))), collapse = ", ")
+  ),
+  by = .(Latitude, Longitude, Product)  # Added Product here
+]
+
+
+# Step 5: Merge both summaries
+clim_extreme_full_summary <- merge(
+  clim_extreme_summary,
+  clim_extreme_counts,
+  by = c("Latitude", "Longitude"),
+  all.x = TRUE
+)
+
+# Order for easier inspection
+setorder(clim_extreme_full_summary, -N_extreme_years)
+
+# View result
+clim_extreme_full_summary
+
+```
+
+
+
+
+```{r}
+# This data can also be loaded from the ERA_dev github
+unique_ltes <- read_csv("C:/Users/mlolita/OneDrive - CGIAR/Documents/LTEs_Project/data/unique_ltes.csv")
+```
+
+
+```{r}
+
+# LTE
+ltes_dt <- as.data.table(unique_ltes)
+ltes_coords <- ltes_dt[
+  !is.na(Latitude) & !is.na(Longitude),
+  .(Site.ID, Latitude = round(as.numeric(Latitude), 4),
+    Longitude = round(as.numeric(Longitude), 4))
+]
+
+# Ag_data
+ag_dt <- as.data.table(Ag_data$Site.Out)
+ag_coords <- ag_dt[
+  !is.na(Site.LatD) & !is.na(Site.LonD),
+  .(Latitude = round(as.numeric(Site.LatD), 4),
+    Longitude = round(as.numeric(Site.LonD), 4))
+]
+ag_coords <- unique(ag_coords)
+
+# Climate
+clim_dt <- as.data.table(clim_combined)
+clim_coords <- clim_dt[
+  !is.na(Latitude) & !is.na(Longitude),
+  .(Latitude = round(as.numeric(Latitude), 4),
+    Longitude = round(as.numeric(Longitude), 4))
+]
+clim_coords <- unique(clim_coords)
+
+# ---- Step 2: Check which LTE sites match coordinates in Ag and Climate ----
+# Flag if present in Ag
+ltes_coords[, Has_Ag := paste(Latitude, Longitude) %in% 
+              paste(ag_coords$Latitude, ag_coords$Longitude)]
+
+# Flag if present in Climate
+ltes_coords[, Has_Climate := paste(Latitude, Longitude) %in% 
+              paste(clim_coords$Latitude, clim_coords$Longitude)]
+
+# ---- Step 3: Identify Site.IDs with missing info ----
+# Identify Site.IDs with missing info
+missing_any <- unique(ltes_coords[!Has_Ag | !Has_Climate, .(Site.ID, Latitude, Longitude)])
+missing_ag <- unique(ltes_coords[Has_Ag == FALSE, .(Site.ID, Latitude, Longitude)])
+missing_climate <- unique(ltes_coords[Has_Climate == FALSE, .(Site.ID, Latitude, Longitude)])
+
+
+
+# ---- Step 4: Summary ----
+cat("Total LTE Sites: ", uniqueN(ltes_coords$Site.ID), "\n")
+cat("Sites missing Ag_data: ", uniqueN(missing_ag$Site.ID), "\n")
+cat("Sites missing Climate: ", uniqueN(missing_climate$Site.ID), "\n")
+cat("Sites missing either Ag or Climate: ", uniqueN(missing_any$Site.ID), "\n")
+
+# Optional: View or export
+# View(missing_any)
+# fwrite(missing_any, "missing_ag_or_climate_sites.csv")
+
+```
+
+
+
+```{r}
+# Convert `unique_ltes` to a data.table format for efficient filtering
+unique_ltes_dt <- as.data.table(unique_ltes)
+
+unique_sites_lte <- unique(unique_ltes_dt[, .(Latitude, Longitude)])
+
+
+#merge LTE data with the table to have all the info available
+
+# Filter each table in `Tables` based on matching `B.Code` from `unique_ltes`
+Ag_data <- lapply(Ag_data, function(tbl) {
+  # Check if the table contains a `B.Code` column
+  if ("B.Code" %in% colnames(tbl)) {
+    # Convert the table to a data.table for efficient joins
+    tbl <- as.data.table(tbl)
+    
+    # Perform a left join to retain only rows with matching `B.Code` and add `LTE.ID`
+    filtered_tbl <- tbl[unique_ltes_dt, on = .(B.Code = Code), nomatch = 0,allow.cartesian=TRUE]
+    
+    # Arrange columns with `LTE.ID`, `B.Code`, `Year.start`, and `Year.end` first
+    col_order <- c("LTE.ID", "B.Code", "Year.start", "Year.end", 
+                   setdiff(names(tbl), c("LTE.ID", "B.Code", "Year.start", "Year.end")))
+    filtered_tbl <- filtered_tbl[, ..col_order]
+    
+    return(filtered_tbl)
+  } else {
+    return(tbl)  # Return the table unchanged if it lacks `B.Code`
+  }
+})
+```
+
+
+```{r}
+# ---- Filter climate data to LTE sites and add LTE.ID ----
+
+# Step 1: Ensure coordinates are numeric and consistently rounded
+clim_combined[, Latitude := round(as.numeric(Latitude), 4)]
+clim_combined[, Longitude := round(as.numeric(Longitude), 4)]
+unique_ltes_dt[, Latitude := round(as.numeric(Latitude), 4)]
+unique_ltes_dt[, Longitude := round(as.numeric(Longitude), 4)]
+
+# Step 2: Subset climate data to LTE coordinates
+lte_coords <- unique(unique_ltes_dt[, .(Latitude, Longitude)])
+clim_lte_dt <- clim_combined[lte_coords, on = .(Latitude, Longitude), nomatch = 0]
+
+# Step 3: Add LTE.ID (and optionally LTE.Name) to climate data
+lte_site_info <- unique(unique_ltes_dt[, .(Latitude, Longitude, Site.ID)])
+clim_lte_dt <- merge(
+  clim_lte_dt,
+  lte_site_info,
+  by = c("Latitude", "Longitude"),
+  all.x = TRUE,
+  allow.cartesian = TRUE  # Allow if multiple LTEs per site
+)
+
+
+```
+
+
+```{r}
+# Count and list years of data per Site.ID
+years_per_site <- clim_lte_dt[
+  !is.na(Site.ID),  # Optional: exclude unmatched sites
+  .(
+    n_years = uniqueN(Year),
+    years_available = paste(sort(unique(Year)), collapse = ", ")
+  ),
+  by = Site.ID
+][order(-n_years)]
+
+```
+
+
+
+```{r}
+
+# Load world map for background
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Example: Plotting LTE locations with heat stress (e.g., days > 35°C)
+ggplot(data = world) +
+  geom_sf(fill = "antiquewhite") +
+  geom_point(data = clim_lte_dt,
+             aes(x = Longitude, y = Latitude),
+             size = 2, alpha = 0.8) +
+  coord_sf(xlim = range(clim_lte_dt$Longitude, na.rm = TRUE),
+           ylim = range(clim_lte_dt$Latitude, na.rm = TRUE)) +
+  labs(
+       x = "Longitude", y = "Latitude") +
+  theme_minimal()
+
+```
+
+
+```{r}
+
+# ---- Step 1: Aggregate yield info at the year level ----
+
+# Subset yield data
+yield_dt <- Ag_data$Data.Out[Out.Subind == "Crop Yield"]
+
+# Preserve original year label
+yield_dt[, Original_Year_Label := Time]
+
+# Extract Year as character (numeric only, used for matching/merging)
+yield_dt[, Clean_Year := stringr::str_extract(Original_Year_Label, "\\d{4}")]
+yield_dt[, Year := Clean_Year]  # Only use for merging – not plotting or summaries
+
+# Base grouping columns
+base_group <- c("B.Code", "Site.ID", "P.Product", "Year", "T.Name", "Out.Unit", "Site.LatD", "Site.LonD")
+
+# Add all columns with "Level.Name" in their name
+level_cols <- grep("Level.Name", names(yield_dt), value = TRUE)
+
+# Combine group columns
+group_cols <- c(base_group, level_cols)
+
+# Perform aggregation
+yield_agg <- yield_dt[, .(
+  Total_Yield = sum(ED.Mean.T, na.rm = TRUE),
+  N_Obs = .N
+), by = group_cols]
+
+# Rename for clarity
+setnames(yield_agg,
+         old = c("B.Code", "Site.ID", "P.Product", "Site.LatD", "Site.LonD"),
+         new = c("Code", "Site", "Product", "Latitude", "Longitude"))
+
+# Round coordinates to match climate/site_data
+# Make sure coordinates and year match in both tables
+clim_combined[, Latitude := round(as.numeric(Latitude), 4)]
+clim_combined[, Longitude := round(as.numeric(Longitude), 4)]
+clim_combined[, Year := as.character(Year)]
+clim_combined[, Code := as.character(Code)]
+
+yield_agg[, Year := as.character(Year)]
+yield_agg[, Code := as.character(Code)]
+yield_agg[, Latitude := round(as.numeric(Latitude), 4)]
+yield_agg[, Longitude := round(as.numeric(Longitude), 4)]
+
+
+yield_climate_merged <- merge(
+  yield_agg,
+  clim_lte_dt,
+  by = c("Latitude", "Longitude", "Year", "Product"),
+  all.x = TRUE,
+  allow.cartesian = TRUE
+)
+
+
+
+```
+
+
+
+```{r}
+# ---- Convert all yield values to tons per hectare (t/ha) ----
+
+# Step 1: Create a conversion table
+unit_conversion <- data.table(
+  Out.Unit = c(
+    "Mg/ha", "kg/ha", "kg DM/ha", "mg/ha", "Mg DM/ha", "g/m2", "g DM/m2",
+    "bags/ha", "Mg/ha/yr", "kg DW/mm", "kg", "g/year", "Mg/acre", "kg/ha/yr",
+    "g/tree", "Mg fresh/ha", "quintal/ha", "kg/m2", "q/ha", "Mg/fed", "kg/fed", "Kg/feddan"
+  ),
+  to_t_ha = c(
+    1,        # Mg/ha
+    0.001,    # kg/ha
+    0.001,    # kg DM/ha
+    1e-6,     # mg/ha
+    1,        # Mg DM/ha
+    0.01,     # g/m2
+    0.01,     # g DM/m2
+    NA,       # bags/ha - ambiguous
+    1,        # Mg/ha/yr
+    NA,       # kg DW/mm - unclear
+    NA,       # kg - unclear
+    NA,       # g/year - unclear
+    2.47105,  # Mg/acre to t/ha
+    0.001,    # kg/ha/yr
+    NA,       # g/tree - unclear
+    1,        # Mg fresh/ha
+    0.1,      # quintal/ha
+    0.01,     # kg/m2
+    0.1,      # q/ha
+    NA,       # Mg/fed - unclear
+    NA,       # kg/fed - unclear
+    NA        # Kg/feddan - unclear
+  )
+)
+
+# Step 2: Merge the conversion table with your dataset
+yield_climate_merged <- merge(
+  yield_climate_merged,
+  unit_conversion,
+  by = "Out.Unit",
+  all.x = TRUE
+)
+
+# Step 3: Convert yield to t/ha
+yield_climate_merged[, Yield.t.ha := Total_Yield * to_t_ha]
+
+# Step 4: Update Out.Unit to "t/ha" for successfully converted values
+yield_climate_merged[!is.na(Yield.t.ha), Out.Unit := "t/ha"]
+
+# Step 5: Keep only rows with successful conversion
+yield_climate_merged <- yield_climate_merged[!is.na(Yield.t.ha)]
+
+```
+
+
+
+```{r}
+# ---- Summary of available yield years per site ----
+# ---- Clean year strings to extract only the numeric year ----
+
+# This will extract the *first 4-digit year* from strings like "1995 R", "1998/99", "Summer2014", etc.
+yield_climate_merged[, Clean_Year := stringr::str_extract(Year, "\\d{4}")]
+
+# ---- Summary: number of years per Site (based on Clean_Year) ----
+yield_years_cleaned <- yield_climate_merged[
+  !is.na(Clean_Year),
+  .(
+    N_clean_years = uniqueN(Clean_Year),
+    Clean_years = paste(sort(unique(Clean_Year)), collapse = ", ")
+  ),
+  by = Site
+]
+
+
+# Ensure Year is character and extract numeric year
+clim_lte_dt[, Clean_Year := stringr::str_extract(Year, "\\d{4}")]
+
+# Summary for climate data
+climate_years_cleaned <- clim_lte_dt[
+  !is.na(Clean_Year),
+  .(
+    N_clean_years = uniqueN(Clean_Year),
+    Clean_years = paste(sort(unique(Clean_Year)), collapse = ", ")
+  ),
+  by = Site.Key
+]
+
+
+
+```
+
+```{r}
+# ---- Step: Clean Year column in climate data ----
+
+# Extract first 4-digit year to normalize entries like "1995-R", "1998/99", etc.
+clim_lte_dt[, Clean_Year := stringr::str_extract(Year, "\\d{4}")]
+
+# ---- Step: Summarize number of years and year list per climate Site ----
+
+climate_years_summary <- clim_lte_dt[
+  !is.na(Clean_Year),
+  .(
+    N_years_climate = uniqueN(Clean_Year),
+    Climate_years = paste(sort(unique(Clean_Year)), collapse = ", ")
+  ),
+  by = .(Latitude, Longitude, Site.Key)
+]
+
+
+
+```
+
+
+```{r}
+
+# 1. Identify climate variable columns
+clim_vars <- names(yield_climate_merged)[
+  grepl("^gdd\\.|^temperature\\.|^rainfall\\.|^eratio\\.|^logging\\.", names(yield_climate_merged))
+]
+
+# 2. Reshape to long format to track presence of data per variable
+clim_long <- melt(
+  yield_climate_merged,
+  id.vars = c("Site", "Latitude", "Longitude", "Product", "Year"),
+  measure.vars = clim_vars,
+  variable.name = "Climate_Variable",
+  value.name = "Value"
+)
+
+# 3. Filter to non-NA values and count matches
+summary_dt <- clim_long[!is.na(Value), .(
+  N_years_matched = uniqueN(Year),
+  Climate_Variables = paste(sort(unique(Climate_Variable)), collapse = ", ")
+), by = .(Site, Latitude, Longitude, Product)]
+
+# View result
+data.table::setorder(summary_dt, -N_years_matched)
+
+```
+
+
+
+```{r}
+# ---- Load patchwork for multi-plot layout ----
+library(patchwork)
+
+# ---- Define climate variables and labels ----
+climate_plot_vars <- list(
+  "temperature.tmax_tg_35.days" = "Days > 35°C",
+  "temperature.tmax_tg_40.days" = "Days > 40°C",
+  "gdd.gdd_abovemax" = "GDD Above Max",
+  "rainfall.w_balance_negdays" = "Negative Water Balance Days",
+  "eratio.eratio_l_0.5.days" = "ETo Ratio < 0.5 Days",
+  "logging.logging_g_ssat_0.5.days" = "Waterlogging > 50% Saturation Days"
+)
+
+# ---- Create a list of ggplots ----
+# ---- Create a list of ggplots without legend ----
+climate_yield_plots <- lapply(names(climate_plot_vars), function(var) {
+  ggplot(yield_climate_merged, aes_string(x = var, y = "Yield.t.ha", color = "Extreme_Year")) +
+    geom_point(alpha = 0.6, size = 2) +
+    geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
+    scale_color_manual(values = c("FALSE" = "gray40", "TRUE" = "#D55E00")) +
+    labs(
+      x = climate_plot_vars[[var]],
+      y = "Yield (t/ha)"
+    ) +
+    coord_cartesian(ylim = c(0, 80)) +
+    theme_minimal(base_size = 14) +
+    theme(
+      legend.position = "none",  # << REMOVE LEGEND
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(color = "gray90"),
+      axis.title = element_text(size = 14),
+      axis.text = element_text(size = 12)
+    )
+})
+
+# ---- Combine all plots using patchwork ----
+combined_plot <- wrap_plots(climate_yield_plots, ncol = 2) +
+  plot_annotation(title = "Yield vs. Climate Extremes", theme = theme(plot.title = element_text(size = 18, face = "bold")))
+
+# ---- Display the combined plot ----
+combined_plot
+
+
+```
+
+
+
+
+
