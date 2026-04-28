@@ -41,7 +41,7 @@ The purpose of this repository is to:
 
 1. **Vignette**:
 
-- [Access Vignette here](https://eragriculture.github.io/LTEs/docs/Vignette-LTEs-2-.html)
+- [Access Vignette here]([https://eragriculture.github.io/LTEs/docs/Vignette-LTEs-2-.html](https://eragriculture.github.io/LTEs/Vignette-LTEs-2-.html)
 
    - The vignette  includes:
      - Exploration of LTE data from the ERA database.
