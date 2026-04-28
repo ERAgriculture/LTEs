@@ -40,17 +40,20 @@ The purpose of this repository is to:
 ## Features
 
 1. **Vignette**:
-   - The vignette (`era_ltes.Rmd`) includes:
+
+- [Access Vignette here](https://eragriculture.github.io/LTEs/docs/Vignette-LTEs-2-.html)
+
+   - The vignette  includes:
      - Exploration of LTE data from the ERA database.
      - Visualization of geographic distribution, practices, and outcomes in LTEs.
      - Systematic mapping of LTE durations and measured outcomes.
      - Methods to integrate and analyze climate data.
 
-2. **Integration with Climate Data**:
+3. **Integration with Climate Data**:
    - Analyzes how climatic factors such as precipitation and temperature influence LTE outcomes.
    - Provides interactive tools to visualize climate trends and anomalies alongside LTE data.
 
-3. **Systematic Mapping and Meta-Analysis**:
+4. **Systematic Mapping and Meta-Analysis**:
    - Frameworks to study the relationships between agricultural practices and outcomes.
    - Utilizes statistical and geospatial approaches to gain insights into LTE contributions.
      
