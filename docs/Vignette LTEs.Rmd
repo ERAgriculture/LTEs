@@ -34,9 +34,9 @@ if (!requireNamespace("pacman", quietly = TRUE)) {
 
 pacman::p_load(char = required_packages)
 
-if(!require(ERAg)){
-  remotes::install_github(repo="https://github.com/EiA2030/ERAg",build_vignettes = T)
-  library(ERAg)
+if(!require(eragri)){
+  remotes::install_github(repo="https://github.com/ERAgriculture/eragri")
+  library(eragri)
 }
 ```
 

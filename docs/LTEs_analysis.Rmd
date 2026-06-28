@@ -12,7 +12,7 @@ library(ggplot2)
 library(sf)
 library(rnaturalearth)
 library(rnaturalearthdata)
-library(ERAg)
+library(eragri)
 library(dplyr)
 library(readr)
 ```
