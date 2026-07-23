@@ -8,6 +8,26 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+```{r packages,include=F,eval=T,echo=T}
+required_packages <- c(
+  "tidyr", "treemap", "s3fs", "miceadds", "readr", "readxl", "data.table", "dplyr",
+  "dplyr", "ggplot2", "sf", "rnaturalearth", "treemapify", "cowplot", "shiny","readxl",
+  "UpSetR", "grid", "viridis", "tiff", "raster", "sp", "DT", "plotly", "arrow"
+)
+
+if (!requireNamespace("pacman", quietly = TRUE)) {
+  install.packages("pacman")
+}
+
+pacman::p_load(char = required_packages)
+
+if(!require(eragri)){
+  remotes::install_github(repo="https://github.com/ERAgriculture/eragri")
+  library(eragri)
+}
+```
+
 ```{r download ERA dataset}
 #download most recent version of the data 
 
