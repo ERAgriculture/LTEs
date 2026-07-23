@@ -1,0 +1,138 @@
+---
+title: "Untitled"
+author: "Namita Joshi"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r download ERA dataset}
+#download most recent version of the data 
+
+# Set up connection to S3 bucket
+s3<-s3fs::S3FileSystem$new(anonymous = T)
+era_s3<-"s3://digital-atlas/era"
+
+# List the files in the s3 bucket
+files<-s3$dir_ls(file.path(era_s3,"data"))
+# This is the most recent version of the data s3://digital-atlas/era/data/industrious_elephant_2023-YYYY-MM-DD.RData
+files<-tail(grep(".RData",grep("industrious_elephant_2023",files,value=T),value=T),1)
+
+# Create a folder to store downloaded data
+download_dir<-"downloaded_data"
+if(!dir.exists(download_dir)){
+  dir.create(download_dir)
+}
+
+# Set a save location for the dataset (amend to something more suitable for your needs)
+save_path<-file.path(getwd(),download_dir,basename(files))
+
+if(!file.exists(save_path)){
+  s3$file_download(files,save_path,overwrite = T)
+}
+
+Tables<- miceadds::load.Rdata2(file=basename(save_path),path=dirname(save_path))
+```
+
+```{r show metadata}
+metadata<-master_codes$era_fields_v2[industrious_elephant_2023==T,.(Table,Field,Display_Name,Field_Description,Data_Type)]
+
+# Choose table in the data model
+selected_table<-"Pub.Out"
+
+# Add an interactive selection for the table
+table_choices <- metadata[, unique(Table)]
+selectInput("selected_table", "Select a Table:", choices = table_choices,selected = "Pub.Out")
+
+# Display the meta-data for the selected table
+renderDT({
+  DT::datatable(
+    metadata[Table == input$selected_table, !"Table"], # Dynamically filter by selected table
+    options = list(
+      scrollY = "400px",  # Set vertical scroll height
+      pageLength = 20     # Initial number of rows displayed
+    )
+  )
+})
+```
+
+```{r unique ltes,message=FALSE,warning=FALSE}
+# Load unique LTEs
+
+# This data can also be loaded from the ERA_dev github
+unique_ltes<-fread("https://github.com/CIAT/ERA_dev/raw/refs/heads/main/data_entry/long_term_experiments/unique.ltes.csv")
+
+# Convert `unique_ltes` to a data.table format for efficient filtering
+unique_ltes_dt <- as.data.table(unique_ltes)
+
+#merge LTE data with the table to have all the info available
+
+# Filter each table in `Tables` based on matching `B.Code` from `unique_ltes`
+filtered_Tables <- lapply(Tables, function(tbl) {
+  # Check if the table contains a `B.Code` column
+  if ("B.Code" %in% colnames(tbl)) {
+    # Convert the table to a data.table for efficient joins
+    tbl <- as.data.table(tbl)
+    
+    # Perform a left join to retain only rows with matching `B.Code` and add `LTE.ID`
+    filtered_tbl <- tbl[unique_ltes_dt, on = .(B.Code = Code), nomatch = 0,allow.cartesian=TRUE]
+    
+    # Arrange columns with `LTE.ID`, `B.Code`, `Year.start`, and `Year.end` first
+    col_order <- c("LTE.ID", "B.Code", "Year.start", "Year.end", 
+                   setdiff(names(tbl), c("LTE.ID", "B.Code", "Year.start", "Year.end")))
+    filtered_tbl <- filtered_tbl[, ..col_order]
+    
+    return(filtered_tbl)
+  } else {
+    return(tbl)  # Return the table unchanged if it lacks `B.Code`
+  }
+})
+```
+
+```{r merge,message=FALSE,warning=FALSE}
+
+# 1. Base: crop yield rows only
+base <- filtered_Tables$Data.Out %>%
+  filter(Out.Subind == "Crop Yield") %>%
+  select(LTE.ID, B.Code, Site.ID, T.Name, P.Product, Time,
+         Out.Code.Joined, ED.Mean.T, ED.Error)
+
+# 2. Site info
+site_info <- filtered_Tables$Site.Out %>%
+  select(B.Code, Site.ID,
+         Latitude = Site.LatD, Longitude = Site.LonD,
+         Site.Start.S1, Site.End.S1, Site.Length.S1,
+         Site.Start.S2, Site.End.S2, Site.Length.S2,
+         Site.MSP.S1, Site.MSP.S2, Site.MAP, Site.MAT) %>%
+  distinct()
+
+# 3. Study duration
+duration_info <- filtered_Tables$Times.Out %>%
+  group_by(B.Code) %>%
+  summarise(
+    Study.Start    = min(as.numeric(Time.Start.Year), na.rm = TRUE),
+    Study.End      = max(as.numeric(Time.End.Year),   na.rm = TRUE),
+    Study.Duration = Study.End - Study.Start,
+    .groups = "drop"
+  )
+
+# 4. Planting dates — check unique(filtered_Tables$PD.Out$PD.Variable) first
+#    to confirm the exact filter string
+planting_dates <- filtered_Tables$PD.Out %>%
+  filter(grepl("(?i)plant|sow", PD.Variable, perl = TRUE)) %>%
+  group_by(B.Code, Site.ID, Time) %>%
+  summarise(
+    Planting.Start = min(PD.Date.Start, na.rm = TRUE),
+    Planting.End   = max(PD.Date.End,   na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# 5. Merge
+lte_summary <- base %>%
+  left_join(site_info,      by = c("B.Code", "Site.ID")) %>%
+  left_join(duration_info,  by = "B.Code") %>%
+  left_join(planting_dates, by = c("B.Code", "Site.ID", "Time")) %>%
+  rename(Code = B.Code, Treatment = T.Name, Yield = ED.Mean.T)
+```
