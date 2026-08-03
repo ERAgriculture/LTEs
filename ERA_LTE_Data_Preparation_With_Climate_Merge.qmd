@@ -4,7 +4,7 @@ format: html
 editor: visual
 ---
 
-**Overview section** (top of document):
+**Overview section**:
 
 > This document prepares a dataset of Long-Term Experiments (LTEs) from the Evidence for Resilient Agriculture (ERA) database, enriched with seasonal climate variables. The final dataset is intended for researchers interested in understanding the climatic conditions experienced during crop growing seasons at LTE sites - either to use the climate variables provided here or as a foundation for adding their own.
 >
