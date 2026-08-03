@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.433">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>ERA LTE Data Preparation with Climate Merge</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="ERA_LTE_Data_Preparation_With_Climate_Merge_files/libs/clipboard/clipboard.min.js"></script>
+<script src="ERA_LTE_Data_Preparation_With_Climate_Merge_files/libs/quarto-html/quarto.js"></script>
+<script src="ERA_LTE_Data_Preparation_With_Climate_Merge_files/libs/quarto-html/popper.min.js"></script>
+<script src="ERA_LTE_Data_Preparation_With_Climate_Merge_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="ERA_LTE_Data_Preparation_With_Climate_Merge_files/libs/quarto-html/anchor.min.js"></script>
+<link href="ERA_LTE_Data_Preparation_With_Climate_Merge_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="ERA_LTE_Data_Preparation_With_Climate_Merge_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="ERA_LTE_Data_Preparation_With_Climate_Merge_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="ERA_LTE_Data_Preparation_With_Climate_Merge_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="ERA_LTE_Data_Preparation_With_Climate_Merge_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">ERA LTE Data Preparation with Climate Merge</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<p><strong>Overview section</strong> (top of document):</p>
+<blockquote class="blockquote">
+<p>This document prepares a dataset of Long-Term Experiments (LTEs) from the Evidence for Resilient Agriculture (ERA) database, enriched with seasonal climate variables. The final dataset is intended for researchers interested in understanding the climatic conditions experienced during crop growing seasons at LTE sites - either to use the climate variables provided here or as a foundation for adding their own.</p>
+<p>The workflow:</p>
+<ol type="1">
+<li><p>Downloads the ERA compiled dataset and data model from S3</p></li>
+<li><p>Filters to LTE sites only using a curated list of LTE codes</p></li>
+<li><p>Merges seasonal climate variables (rainfall, temperature, GDD, evapotranspiration ratio) calculated over the crop growing season defined by planting and harvest dates</p></li>
+<li><p>Exports the final dataset for downstream us</p></li>
+</ol>
+</blockquote>
+<section id="download-the-data" class="level3">
+<h3 class="anchored" data-anchor-id="download-the-data">Download the data</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialise S3 connection</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>s3 <span class="ot">&lt;-</span> s3fs<span class="sc">::</span>S3FileSystem<span class="sc">$</span><span class="fu">new</span>(<span class="at">anonymous =</span> <span class="cn">TRUE</span>)  <span class="co"># re-initialise fresh each run</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>era_s3 <span class="ot">&lt;-</span> <span class="st">"s3://digital-atlas/era"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>dl_dir <span class="ot">&lt;-</span> <span class="st">"downloaded_data"</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(dl_dir, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># --- 1) ERA Compiled (parquet bundle) ---</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>bundle_dir    <span class="ot">&lt;-</span> <span class="fu">file.path</span>(era_s3, <span class="st">"data"</span>, <span class="st">"packaged"</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>s3            <span class="ot">&lt;-</span> s3fs<span class="sc">::</span>S3FileSystem<span class="sc">$</span><span class="fu">new</span>(<span class="at">anonymous =</span> <span class="cn">TRUE</span>)  <span class="co"># fresh connection before dir_ls</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>all_files     <span class="ot">&lt;-</span> s3<span class="sc">$</span><span class="fu">dir_ls</span>(bundle_dir)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>latest_bundle <span class="ot">&lt;-</span> <span class="fu">tail</span>(<span class="fu">sort</span>(<span class="fu">grep</span>(<span class="st">"era_agronomy_bundle.*</span><span class="sc">\\</span><span class="st">.tar</span><span class="sc">\\</span><span class="st">.gz$"</span>, all_files, <span class="at">value =</span> <span class="cn">TRUE</span>)), <span class="dv">1</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>bundle_local <span class="ot">&lt;-</span> <span class="fu">file.path</span>(dl_dir, <span class="fu">basename</span>(latest_bundle))</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>extract_dir  <span class="ot">&lt;-</span> <span class="fu">file.path</span>(dl_dir, tools<span class="sc">::</span><span class="fu">file_path_sans_ext</span>(tools<span class="sc">::</span><span class="fu">file_path_sans_ext</span>(<span class="fu">basename</span>(latest_bundle))))</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(bundle_local)) {</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  s3<span class="sc">$</span><span class="fu">file_download</span>(latest_bundle, bundle_local, <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">dir.exists</span>(extract_dir)) {</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dir.create</span>(extract_dir)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>  utils<span class="sc">::</span><span class="fu">untar</span>(bundle_local, <span class="at">exdir =</span> extract_dir)</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>parquet_file <span class="ot">&lt;-</span> <span class="fu">list.files</span>(extract_dir, <span class="at">pattern =</span> <span class="st">"^era_compiled.*</span><span class="sc">\\</span><span class="st">.parquet$"</span>, <span class="at">full.names =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>ERA_Compiled <span class="ot">&lt;-</span> arrow<span class="sc">::</span><span class="fu">read_parquet</span>(parquet_file)</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"ERA_Compiled loaded:"</span>, <span class="fu">nrow</span>(ERA_Compiled), <span class="st">"rows</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ERA_Compiled loaded: 197731 rows</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>era_dat      <span class="ot">&lt;-</span> <span class="fu">as.data.table</span>(ERA_Compiled)  <span class="co"># consistent name for downstream use</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="co"># --- 2) ERA Big Data Model (industrious elephant RData) ---</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>files     <span class="ot">&lt;-</span> s3<span class="sc">$</span><span class="fu">dir_ls</span>(<span class="fu">file.path</span>(era_s3, <span class="st">"data"</span>))</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>files     <span class="ot">&lt;-</span> <span class="fu">tail</span>(<span class="fu">grep</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">.RData$"</span>, <span class="fu">grep</span>(<span class="st">"industrious_elephant_2023"</span>, files, <span class="at">value =</span> <span class="cn">TRUE</span>), <span class="at">value =</span> <span class="cn">TRUE</span>), <span class="dv">1</span>)</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>save_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(dl_dir, <span class="fu">basename</span>(files))</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(save_path)) {</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>  s3<span class="sc">$</span><span class="fu">file_download</span>(files, save_path, <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>Tables <span class="ot">&lt;-</span> miceadds<span class="sc">::</span><span class="fu">load.Rdata2</span>(<span class="at">file =</span> <span class="fu">basename</span>(save_path), <span class="at">path =</span> <span class="fu">dirname</span>(save_path))</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Tables loaded:"</span>, <span class="fu">paste</span>(<span class="fu">names</span>(Tables), <span class="at">collapse =</span> <span class="st">", "</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Tables loaded: Pub.Out, Site.Out, Soil.Out, ExpD.Out, Times.Out, Times.Clim, Prod.Out, Var.Out, Till.Out, Plant.Out, Plant.Method, PD.Codes, PD.Out, Fert.Out, Fert.Method, Fert.Comp, Chems.Code, Chems.AI, Chems.Out, Weed.Out, Res.Out, Res.Method, Res.Comp, Har.Out, pH.Out, pH.Method, Irrig.Codes, Irrig.Method, WH.Out, AF.Out, AF.Trees, Other.Out, Base.Out, MT.Out, Int.Out, Rot.Out, Rot.Seq, Rot.Seq.Summ, Rot.Levels, Out.Out, Out.Econ, Data.Out</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="filters-to-lte-sites-only-using-a-curated-list-of-lte-codes" class="level3">
+<h3 class="anchored" data-anchor-id="filters-to-lte-sites-only-using-a-curated-list-of-lte-codes">Filters to LTE sites only using a curated list of LTE codes</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load unique LTEs from ERA_dev GitHub</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>unique_ltes    <span class="ot">&lt;-</span> <span class="fu">fread</span>(<span class="st">"https://github.com/CIAT/ERA_dev/raw/refs/heads/main/data_entry/long_term_experiments/unique.ltes.csv"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>unique_ltes_dt <span class="ot">&lt;-</span> <span class="fu">as.data.table</span>(unique_ltes)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Loaded"</span>, <span class="fu">nrow</span>(unique_ltes_dt), <span class="st">"unique LTEs</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Loaded 452 unique LTEs</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter each table in Tables to only rows matching LTE B.Codes</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>filtered_Tables <span class="ot">&lt;-</span> <span class="fu">lapply</span>(Tables, <span class="cf">function</span>(tbl) {</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="st">"B.Code"</span> <span class="sc">%in%</span> <span class="fu">colnames</span>(tbl)) {</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    tbl <span class="ot">&lt;-</span> <span class="fu">as.data.table</span>(tbl)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    filtered_tbl <span class="ot">&lt;-</span> tbl[unique_ltes_dt, on <span class="ot">=</span> .(<span class="at">B.Code =</span> Code), nomatch <span class="ot">=</span> <span class="dv">0</span>, allow.cartesian <span class="ot">=</span> <span class="cn">TRUE</span>]</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    col_order <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"LTE.ID"</span>, <span class="st">"B.Code"</span>, <span class="st">"Year.start"</span>, <span class="st">"Year.end"</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>                   <span class="fu">setdiff</span>(<span class="fu">names</span>(tbl), <span class="fu">c</span>(<span class="st">"LTE.ID"</span>, <span class="st">"B.Code"</span>, <span class="st">"Year.start"</span>, <span class="st">"Year.end"</span>)))</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    col_order <span class="ot">&lt;-</span> col_order[col_order <span class="sc">%in%</span> <span class="fu">names</span>(filtered_tbl)]</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    filtered_tbl <span class="ot">&lt;-</span> filtered_tbl[, ..col_order]</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(filtered_tbl)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(tbl)</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Tables filtered to LTEs</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Tables filtered to LTEs</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter the parquet-based ERA data to LTE codes only</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>lte_codes <span class="ot">&lt;-</span> <span class="fu">unique</span>(unique_ltes_dt<span class="sc">$</span>Code)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>lte_dat <span class="ot">&lt;-</span> era_dat[Code <span class="sc">%in%</span> lte_codes]</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"lte_dat filtered to LTEs:"</span>, <span class="fu">nrow</span>(lte_dat), <span class="st">"rows,"</span>, <span class="fu">uniqueN</span>(lte_dat<span class="sc">$</span>Code), <span class="st">"unique codes</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; lte_dat filtered to LTEs: 32826 rows, 293 unique codes</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="download-the-climate-data" class="level3">
+<h3 class="anchored" data-anchor-id="download-the-climate-data">Download the climate data</h3>
+<p>Seasonal climate variables are calculated over the crop growing season and stored in the ERA geodata S3 bucket. These are downloaded and merged onto the LTE dataset.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Download and merge climate data from S3</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>s3_data_dir  <span class="ot">&lt;-</span> <span class="st">"s3://digital-atlas/era/geodata"</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>download_dir <span class="ot">&lt;-</span> <span class="st">"downloaded_data"</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>files_s3 <span class="ot">&lt;-</span> s3<span class="sc">$</span><span class="fu">dir_ls</span>(s3_data_dir)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>files_s3 <span class="ot">&lt;-</span> <span class="fu">grep</span>(<span class="st">"clim_stats.*RData"</span>, files_s3, <span class="at">value =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>files_s3 <span class="ot">&lt;-</span> <span class="fu">tail</span>(files_s3, <span class="dv">1</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>files_local <span class="ot">&lt;-</span> <span class="fu">gsub</span>(s3_data_dir, download_dir, files_s3)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(files_local)) {</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  s3<span class="sc">$</span><span class="fu">file_download</span>(files_s3, files_local)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>clim_data <span class="ot">&lt;-</span> miceadds<span class="sc">::</span><span class="fu">load.Rdata2</span>(<span class="at">file =</span> <span class="fu">basename</span>(files_local), <span class="at">path =</span> <span class="fu">dirname</span>(files_local))</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Climate data loaded. Components:"</span>, <span class="fu">paste</span>(<span class="fu">names</span>(clim_data), <span class="at">collapse =</span> <span class="st">", "</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Climate data loaded. Components: PDate.SLen.Data, PDate.SLen.EcoCrop, PDate.SLen.P30, site_data</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Helper function to consolidate climate data components</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>prep_and_consolidate_climate <span class="ot">&lt;-</span> <span class="cf">function</span>(climate_source_list, join_keys) {</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  prep_single <span class="ot">&lt;-</span> <span class="cf">function</span>(dt, name) {</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">&lt;-</span> <span class="fu">copy</span>(<span class="fu">as.data.table</span>(dt))</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="st">"Product"</span> <span class="sc">%in%</span> <span class="fu">names</span>(x)) <span class="fu">setnames</span>(x, <span class="st">"Product"</span>, <span class="st">"Product.Simple"</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    data_cols <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="fu">names</span>(x), <span class="fu">c</span>(join_keys, <span class="st">"row_index"</span>, <span class="st">"window"</span>, <span class="st">"EU"</span>))</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">setnames</span>(x, data_cols, <span class="fu">paste0</span>(name, <span class="st">"_"</span>, data_cols))</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    cols_to_keep <span class="ot">&lt;-</span> <span class="fu">c</span>(join_keys, <span class="fu">paste0</span>(name, <span class="st">"_"</span>, data_cols))</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">&lt;-</span> x[, .SD, .SDcols <span class="ot">=</span> cols_to_keep]</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">&lt;-</span> <span class="fu">unique</span>(x, <span class="at">by =</span> join_keys)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(x)</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  gdd    <span class="ot">&lt;-</span> <span class="fu">prep_single</span>(climate_source_list<span class="sc">$</span>gdd,         <span class="st">"gdd"</span>)</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>  rain   <span class="ot">&lt;-</span> <span class="fu">prep_single</span>(climate_source_list<span class="sc">$</span>rainfall,    <span class="st">"rain"</span>)</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  temp   <span class="ot">&lt;-</span> <span class="fu">prep_single</span>(climate_source_list<span class="sc">$</span>temperature, <span class="st">"temp"</span>)</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>  eratio <span class="ot">&lt;-</span> <span class="fu">prep_single</span>(climate_source_list<span class="sc">$</span>eratio,      <span class="st">"eratio"</span>)</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>  consolidated <span class="ot">&lt;-</span> <span class="fu">Reduce</span>(<span class="cf">function</span>(x, y) <span class="fu">merge</span>(x, y, <span class="at">by =</span> join_keys, <span class="at">all =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>                         <span class="fu">list</span>(gdd, rain, temp, eratio))</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>(consolidated, <span class="at">by =</span> join_keys)</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><strong>Planting Dates and Climate Windows subsection:</strong></p>
+<blockquote class="blockquote">
+<p>Climate variables are computed over the window between <code>Plant.Start</code> and <code>Plant.End</code> for each site-year-crop combination. Two sources of planting dates are used, and the <code>climate_date_source</code> column records which was applied for each row:</p>
+<ul>
+<li><p><strong><code>PDate</code></strong> — precise planting dates reported or estimated from the study itself. Where <code>climate_date_source == "PDate"</code>, the <code>Plant.Start</code> and <code>Plant.End</code> columns reflect the actual dates recorded in the original publication.</p></li>
+<li><p><strong><code>EcoCrop</code></strong> — generic crop calendar dates from the EcoCrop database, used as a fallback where precise dates are unavailable. Where <code>climate_date_source == "EcoCrop"</code>, the <code>Plant.Start</code> and <code>Plant.End</code> columns are derived from the EcoCrop planting calendar for that crop and location, not from the original study. Users should treat these dates and their associated climate variables with more caution, as they may not reflect actual growing conditions at the site.</p></li>
+<li><p><strong><code>NA</code></strong> — rows where no climate data could be merged from either source. These are exported separately to <code>unmatched_climate_keys.csv</code> for inspection.</p></li>
+</ul>
+<p>The climate variables available are:</p>
+<table class="table">
+<colgroup>
+<col style="width: 11%">
+<col style="width: 88%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Prefix</th>
+<th>Variables</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gdd_</code></td>
+<td>Growing degree days (suboptimal, optimal, above optimal, above maximum)</td>
+</tr>
+<tr class="even">
+<td><code>rain_</code></td>
+<td>Total rainfall, ETo, water balance, dry spell indices</td>
+</tr>
+<tr class="odd">
+<td><code>temp_</code></td>
+<td>Min/max/mean temperature statistics and heat stress thresholds (35°C, 37.5°C, 40°C)</td>
+</tr>
+<tr class="even">
+<td><code>eratio_</code></td>
+<td>Evapotranspiration ratio (actual/potential), drought stress indices</td>
+</tr>
+</tbody>
+</table>
+<p>Each climate group also includes <code>_Harvest.Start</code> and <code>_Harvest.End</code> columns recording the harvest window used in the climate calculation.</p>
+</blockquote>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"STEP 1: Merging with precise planting date climate data...</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; STEP 1: Merging with precise planting date climate data...</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>keys_primary      <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Site.Key"</span>, <span class="st">"M.Year"</span>, <span class="st">"Product.Simple"</span>, <span class="st">"Plant.Start"</span>, <span class="st">"Plant.End"</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>primary_clim_data <span class="ot">&lt;-</span> <span class="fu">prep_and_consolidate_climate</span>(clim_data<span class="sc">$</span>PDate.SLen.Data, keys_primary)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>lte_final <span class="ot">&lt;-</span> <span class="fu">copy</span>(lte_dat)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>lte_final[, Product.Simple <span class="sc">:</span><span class="er">=</span> <span class="fu">tolower</span>(<span class="fu">trimws</span>(Product.Simple))]</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>primary_clim_data[, Product.Simple <span class="sc">:</span><span class="er">=</span> <span class="fu">tolower</span>(<span class="fu">trimws</span>(Product.Simple))]</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (col <span class="cf">in</span> <span class="fu">c</span>(<span class="st">"Plant.Start"</span>, <span class="st">"Plant.End"</span>)) {</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (col <span class="sc">%in%</span> <span class="fu">names</span>(lte_final))         lte_final[, (col) <span class="sc">:</span><span class="er">=</span> <span class="fu">as.Date</span>(<span class="fu">get</span>(col))]</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (col <span class="sc">%in%</span> <span class="fu">names</span>(primary_clim_data)) primary_clim_data[, (col) <span class="sc">:</span><span class="er">=</span> <span class="fu">as.Date</span>(<span class="fu">get</span>(col))]</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>lte_final <span class="ot">&lt;-</span> <span class="fu">merge</span>(lte_final, primary_clim_data, <span class="at">by =</span> keys_primary, <span class="at">all.x =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>climate_cols         <span class="ot">&lt;-</span> <span class="fu">names</span>(primary_clim_data)[<span class="sc">!</span><span class="fu">names</span>(primary_clim_data) <span class="sc">%in%</span> keys_primary]</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>rows_matched_primary <span class="ot">&lt;-</span> lte_final[<span class="sc">!</span><span class="fu">is.na</span>(<span class="fu">get</span>(climate_cols[<span class="dv">1</span>])), .N]</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Flag rows matched on precise planting dates</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>lte_final[<span class="sc">!</span><span class="fu">is.na</span>(<span class="fu">get</span>(climate_cols[<span class="dv">1</span>])), climate_date_source <span class="sc">:</span><span class="er">=</span> <span class="st">"PDate"</span>]</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Successfully merged"</span>, rows_matched_primary, <span class="st">"rows using precise planting dates.</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Successfully merged 9350 rows using precise planting dates.</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"STEP 2: Supplementing missing data with EcoCrop climate data...</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; STEP 2: Supplementing missing data with EcoCrop climate data...</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>rows_to_fill <span class="ot">&lt;-</span> lte_final[<span class="fu">is.na</span>(<span class="fu">get</span>(climate_cols[<span class="dv">1</span>]))]</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">nrow</span>(rows_to_fill) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  keys_ecocrop      <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Site.Key"</span>, <span class="st">"M.Year"</span>, <span class="st">"Product.Simple"</span>)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  ecocrop_clim_data <span class="ot">&lt;-</span> <span class="fu">prep_and_consolidate_climate</span>(clim_data<span class="sc">$</span>PDate.SLen.EcoCrop, keys_ecocrop)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  ecocrop_clim_data[, Product.Simple <span class="sc">:</span><span class="er">=</span> <span class="fu">tolower</span>(<span class="fu">trimws</span>(Product.Simple))]</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Extract planting dates from raw table BEFORE prep function prefixes the column names</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  ecocrop_dates <span class="ot">&lt;-</span> <span class="fu">as.data.table</span>(clim_data<span class="sc">$</span>PDate.SLen.EcoCrop<span class="sc">$</span>gdd)[</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    , .(Site.Key, M.Year, Product, Plant.Start, Plant.End)</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  ]</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setnames</span>(ecocrop_dates, <span class="st">"Product"</span>, <span class="st">"Product.Simple"</span>)</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  ecocrop_dates[, Product.Simple <span class="sc">:</span><span class="er">=</span> <span class="fu">tolower</span>(<span class="fu">trimws</span>(Product.Simple))]</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  ecocrop_dates <span class="ot">&lt;-</span> <span class="fu">unique</span>(ecocrop_dates, <span class="at">by =</span> keys_ecocrop)</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (col <span class="cf">in</span> <span class="fu">c</span>(<span class="st">"Plant.Start"</span>, <span class="st">"Plant.End"</span>)) {</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    ecocrop_dates[, (col) <span class="sc">:</span><span class="er">=</span> <span class="fu">as.Date</span>(<span class="fu">get</span>(col))]</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Merge climate variables for unmatched rows</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  lte_final[ecocrop_clim_data, on <span class="ot">=</span> keys_ecocrop,</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>            (climate_cols) <span class="sc">:</span><span class="er">=</span> <span class="fu">mget</span>(<span class="fu">paste0</span>(<span class="st">"i."</span>, climate_cols))]</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Fill Plant.Start and Plant.End where still NA</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>  lte_final[ecocrop_dates, on <span class="ot">=</span> keys_ecocrop, <span class="st">`</span><span class="at">:=</span><span class="st">`</span>(</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">Plant.Start =</span> <span class="fu">fifelse</span>(<span class="fu">is.na</span>(Plant.Start), i.Plant.Start, Plant.Start),</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">Plant.End   =</span> <span class="fu">fifelse</span>(<span class="fu">is.na</span>(Plant.End),   i.Plant.End,   Plant.End)</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>  )]</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Flag rows filled by EcoCrop fallback</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>  lte_final[<span class="fu">is.na</span>(climate_date_source) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(<span class="fu">get</span>(climate_cols[<span class="dv">1</span>])),</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>            climate_date_source <span class="sc">:</span><span class="er">=</span> <span class="st">"EcoCrop"</span>]</span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>  rows_matched_total     <span class="ot">&lt;-</span> lte_final[<span class="sc">!</span><span class="fu">is.na</span>(<span class="fu">get</span>(climate_cols[<span class="dv">1</span>])), .N]</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>  rows_filled_by_ecocrop <span class="ot">&lt;-</span> rows_matched_total <span class="sc">-</span> rows_matched_primary</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Filled an additional"</span>, rows_filled_by_ecocrop, <span class="st">"rows using EcoCrop data.</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"No missing data to fill. Primary merge was 100% successful.</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Filled an additional 7625 rows using EcoCrop data.</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><strong>Using the climate variables provided:</strong><br>
+The columns prefixed <code>gdd_</code>, <code>rain_</code>, <code>temp_</code>, and <code>eratio_</code> contain seasonal climate statistics calculated over the growing season window defined by <code>Plant.Start</code> and <code>Plant.End</code>. The <code>climate_date_source</code> column indicates how these dates were determined: <code>"PDate"</code> means the dates came from the study itself; <code>"EcoCrop"</code> means the dates were derived from the EcoCrop generic crop calendar because no study-specific dates were available. EcoCrop-derived windows are less precise and may not reflect actual growing conditions at the site — users should account for this uncertainty when using climate variables for those rows.</p>
+<p><strong>Adding your own climate variables:</strong><br>
+The key columns for linking to external climate datasets are <code>Site.Key</code>, <code>Latitude</code>, <code>Longitude</code>, <code>M.Year</code>, <code>Plant.Start</code>, and <code>Plant.End</code>. These uniquely identify each site-season combination and can be used to extract climate data from any gridded product (e.g.&nbsp;CHIRPS, ERA5, AgERA5) over the same growing season window. Where <code>climate_date_source == "EcoCrop"</code>, you may wish to replace the planting dates with more precise estimates before extracting your own climate variables.</p>
+<p><strong>Unmatched rows:</strong><br>
+Rows where no climate data could be merged (neither precise nor EcoCrop) are exported to <code>unmatched_climate_keys.csv</code>. These represent site-year-crop combinations not yet covered by the ERA geodata pipeline, and may be candidates for manual date lookup or alternative climate data sources.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>total_merged <span class="ot">&lt;-</span> lte_final[<span class="sc">!</span><span class="fu">is.na</span>(<span class="fu">get</span>(climate_cols[<span class="dv">1</span>])), .N]</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>total_rows   <span class="ot">&lt;-</span> <span class="fu">nrow</span>(lte_final)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"--- MERGE COMPLETE ---</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; --- MERGE COMPLETE ---</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Total rows with climate data:"</span>, total_merged, <span class="st">"out of"</span>, total_rows, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Total rows with climate data: 16975 out of 32826</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Data coverage:"</span>, <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> total_merged <span class="sc">/</span> total_rows, <span class="dv">2</span>), <span class="st">"%</span><span class="sc">\n\n</span><span class="st">"</span>)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Data coverage: 51.71 %</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Climate date source breakdown:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Climate date source breakdown:</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(lte_final[, .N, <span class="at">by =</span> climate_date_source])</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    climate_date_source     N</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                 &lt;char&gt; &lt;int&gt;</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1:                &lt;NA&gt; 15851</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2:             EcoCrop  7625</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3:               PDate  9350</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="fu">fwrite</span>(lte_final, <span class="st">"data/lte_final.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
