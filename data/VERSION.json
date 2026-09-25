@@ -1,0 +1,11 @@
+{
+  "lte_release": "2026.1",
+  "built": "2026-09-25",
+  "era_release": "2026.1",
+  "era_provenance": "v1.0-mh_2025-07-24.1-sc_2025_01_30.1-ie_2025_08_11.1-2025-10-24.1",
+  "clim_stats": "clim_stats_2025-08-14.1.RData",
+  "registry": "https://github.com/CIAT/ERA_dev/raw/refs/heads/main/data_entry/long_term_experiments/unique.ltes.csv",
+  "rows": 33646,
+  "publications": 293,
+  "ltes": 244
+}

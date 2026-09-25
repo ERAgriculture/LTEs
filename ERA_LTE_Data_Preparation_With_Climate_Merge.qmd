@@ -1,291 +1,244 @@
 ---
 title: "ERA LTE Data Preparation with Climate Merge"
-format: html
+format:
+  html:
+    embed-resources: true
+    toc: true
 editor: visual
 ---
 
-**Overview section**:
-
-> This document prepares a dataset of Long-Term Experiments (LTEs) from the Evidence for Resilient Agriculture (ERA) database, enriched with seasonal climate variables. The final dataset is intended for researchers interested in understanding the climatic conditions experienced during crop growing seasons at LTE sites - either to use the climate variables provided here or as a foundation for adding their own.
->
-> The workflow:
->
-> 1.  Downloads the ERA compiled dataset and data model from S3
->
-> 2.  Filters to LTE sites only using a curated list of LTE codes
->
-> 3.  Merges seasonal climate variables (rainfall, temperature, GDD, evapotranspiration ratio) calculated over the crop growing season defined by planting and harvest dates
->
-> 4.  Exports the final dataset for downstream us
+> Builds the ERA long-term-experiment (LTE) dataset: the latest public **ERA compiled** release, restricted to a curated list of LTE publications, joined to ERA's seasonal climate statistics. Everything is downloaded from public URLs (no credentials, no R packages beyond the tidyverse + arrow). Outputs are written to `data/`; the column dictionary is `data/data_dictionary.csv` and the build provenance is `data/VERSION.json`.
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  echo = TRUE,
-  message = FALSE,
-  warning = FALSE
-)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE)
 ```
 
-```{r packages, include=FALSE}
-if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman")
-pacman::p_load(
-  sf, knitr, rnaturalearth, rnaturalearthdata,
-  ggplot2, viridis, dplyr, plotly, data.table,
-  s3fs, arrow, htmlwidgets, remotes, gridExtra, DT, tidyverse,
-  jsonlite, patchwork, cowplot, stringr, lme4, lmerTest,
-  miceadds, RColorBrewer, ggrepel, colorspace, kableExtra,
-  gridExtra, grid, performance
-)
-
-download_dir <- "downloaded_data"
-if (!dir.exists(download_dir)) dir.create(download_dir, showWarnings = FALSE)
+```{r packages}
+library(dplyr); library(readr); library(stringr); library(purrr); library(arrow); library(jsonlite)
+dl <- "downloaded_data"; dir.create(dl, showWarnings = FALSE)
+s3 <- "https://digital-atlas.s3.amazonaws.com/era"
+fetch <- function(url, name = basename(url)) {                # download once, then reuse the local copy
+  f <- file.path(dl, name); if (!file.exists(f)) download.file(url, f, mode = "wb", quiet = TRUE); f }
 ```
 
-### Download the data
+## 1. ERA compiled data (latest public release)
 
-```{r load-era-parquet}
-# Initialise S3 connection
+The ERA team publishes versioned releases under `era/data/releases/`; `latest.json` names the current one. One row = one control-vs-treatment comparison for one outcome.
 
-s3 <- s3fs::S3FileSystem$new(anonymous = TRUE)  # re-initialise fresh each run
-era_s3 <- "s3://digital-atlas/era"
-dl_dir <- "downloaded_data"
-dir.create(dl_dir, showWarnings = FALSE)
-
-# --- 1) ERA Compiled (parquet bundle) ---
-bundle_dir    <- file.path(era_s3, "data", "packaged")
-s3            <- s3fs::S3FileSystem$new(anonymous = TRUE)  # fresh connection before dir_ls
-all_files     <- s3$dir_ls(bundle_dir)
-latest_bundle <- tail(sort(grep("era_agronomy_bundle.*\\.tar\\.gz$", all_files, value = TRUE)), 1)
-
-bundle_local <- file.path(dl_dir, basename(latest_bundle))
-extract_dir  <- file.path(dl_dir, tools::file_path_sans_ext(tools::file_path_sans_ext(basename(latest_bundle))))
-
-if (!file.exists(bundle_local)) {
-  s3$file_download(latest_bundle, bundle_local, overwrite = TRUE)
-}
-if (!dir.exists(extract_dir)) {
-  dir.create(extract_dir)
-  utils::untar(bundle_local, exdir = extract_dir)
-}
-
-parquet_file <- list.files(extract_dir, pattern = "^era_compiled.*\\.parquet$", full.names = TRUE)
-ERA_Compiled <- arrow::read_parquet(parquet_file)
-cat("ERA_Compiled loaded:", nrow(ERA_Compiled), "rows\n")
-
-era_dat      <- as.data.table(ERA_Compiled)  # consistent name for downstream use
-# --- 2) ERA Big Data Model (industrious elephant RData) ---
-files     <- s3$dir_ls(file.path(era_s3, "data"))
-files     <- tail(grep("\\.RData$", grep("industrious_elephant_2023", files, value = TRUE), value = TRUE), 1)
-save_path <- file.path(dl_dir, basename(files))
-
-if (!file.exists(save_path)) {
-  s3$file_download(files, save_path, overwrite = TRUE)
-}
-
-Tables <- miceadds::load.Rdata2(file = basename(save_path), path = dirname(save_path))
-cat("Tables loaded:", paste(names(Tables), collapse = ", "), "\n")
+```{r era}
+release  <- fromJSON(paste0(s3, "/data/releases/latest.json"))$latest
+rel_url  <- paste0(s3, "/data/releases/version=", release, "/")
+manifest <- fromJSON(paste0(rel_url, "manifest.json"))
+era <- read_parquet(fetch(paste0(rel_url, "era_compiled.parquet"), paste0("era_compiled_", release, ".parquet")))
+cat("ERA release", release, ":", nrow(era), "rows,", n_distinct(era$Code), "publications\n")
 ```
 
-### Filters to LTE sites only using a curated list of LTE codes
+## 2. Curated LTE list
 
-```{r load-ltes}
-# Load unique LTEs from ERA_dev GitHub
-unique_ltes    <- fread("https://github.com/CIAT/ERA_dev/raw/refs/heads/main/data_entry/long_term_experiments/unique.ltes.csv")
-unique_ltes_dt <- as.data.table(unique_ltes)
-cat("Loaded", nrow(unique_ltes_dt), "unique LTEs\n")
+The registry lives in the ERA extraction repo (`CIAT/ERA_dev`). It is semicolon-delimited, Latin-1 encoded, has trailing empty columns and a few broken rows, so it is cleaned here and the cleaned copy is shipped as `data/unique_ltes_clean.csv`. Rows that cannot be used are listed in `data/unique_ltes_unresolved.csv` instead of being dropped silently.
+
+```{r registry}
+reg_url <- "https://github.com/CIAT/ERA_dev/raw/refs/heads/main/data_entry/long_term_experiments/unique.ltes.csv"
+reg_raw <- read_delim(fetch(reg_url), delim = ";", locale = locale(encoding = "latin1"),
+                      name_repair = "minimal", show_col_types = FALSE)
+reg0 <- reg_raw[, nzchar(names(reg_raw))] |> rename_with(str_trim) |> mutate(across(where(is.character), str_trim))
+ok   <- str_detect(coalesce(reg0$Code, ""), "^[A-Z]{2}[0-9]{4}([.][0-9]+)?$")   # a real ERA publication code
+reg  <- reg0[ok, ] |> distinct(LTE.ID, Code, Site.ID, .keep_all = TRUE)
+unresolved <- bind_rows(`malformed row` = reg0[!ok, ], `code not in ERA compiled` = filter(reg, !Code %in% era$Code), .id = "issue")
+write_csv(reg, "data/unique_ltes_clean.csv"); write_csv(unresolved, "data/unique_ltes_unresolved.csv")
+cat(nrow(reg), "registry rows:", n_distinct(reg$LTE.ID), "LTEs,", n_distinct(reg$Code), "publications;", nrow(unresolved), "unresolved rows\n")
 ```
 
-```{r filter-tables-to-ltes}
-# Filter each table in Tables to only rows matching LTE B.Codes
-filtered_Tables <- lapply(Tables, function(tbl) {
-  if ("B.Code" %in% colnames(tbl)) {
-    tbl <- as.data.table(tbl)
-    filtered_tbl <- tbl[unique_ltes_dt, on = .(B.Code = Code), nomatch = 0, allow.cartesian = TRUE]
-    col_order <- c("LTE.ID", "B.Code", "Year.start", "Year.end",
-                   setdiff(names(tbl), c("LTE.ID", "B.Code", "Year.start", "Year.end")))
-    col_order <- col_order[col_order %in% names(filtered_tbl)]
-    filtered_tbl <- filtered_tbl[, ..col_order]
-    return(filtered_tbl)
-  } else {
-    return(tbl)
-  }
-})
+## 3. Filter to LTE publications and attach the LTE identifier
 
-cat("Tables filtered to LTEs\n")
+One LTE can have several publications and one publication can report several LTEs (multi-site papers). `LTE.ID` is attached by publication **and site** where the site names agree, otherwise by publication when that is unambiguous. Rows that remain without `LTE.ID` are counted in the build report.
+
+```{r filter}
+lte_map <- distinct(reg, Code, Site.ID, LTE.ID)
+by_site <- distinct(lte_map, Code, Site.ID, .keep_all = TRUE)
+by_code <- lte_map |> group_by(Code) |> filter(n_distinct(LTE.ID) == 1) |> distinct(Code, LTE.ID)
+lte <- era |> filter(Code %in% reg$Code) |>
+  left_join(by_site, by = c("Code", "Site.ID")) |>
+  left_join(by_code, by = "Code", suffix = c("", "_code")) |>
+  mutate(LTE.ID = coalesce(LTE.ID, LTE.ID_code), .keep = "unused")
+cat(nrow(lte), "LTE rows,", n_distinct(lte$Code), "publications,", n_distinct(lte$LTE.ID), "LTEs;", sum(is.na(lte$LTE.ID)), "rows without LTE.ID\n")
 ```
 
-```{r filter-parquet-to-ltes}
-# Filter the parquet-based ERA data to LTE codes only
-lte_codes <- unique(unique_ltes_dt$Code)
+## 4. Analysis-ready columns
 
-lte_dat <- era_dat[Code %in% lte_codes]
-cat("lte_dat filtered to LTEs:", nrow(lte_dat), "rows,", uniqueN(lte_dat$Code), "unique codes\n")
+-   **Yield in t/ha** (`yield_t_ha` for the treatment, `yield_c_t_ha` for the control) with an explicit `yield_basis`, so users never write their own unit map. Only crop-yield rows are converted.
+-   **Aggregated years**: `M.Year` such as `1993..2003` means the value is a mean over several years or seasons; it is flagged and its first/last year parsed.
+-   **Arm ids**: `Index` identifies the *pair*. The same treatment arm appears once per control it is paired with, so `obs_id` (treatment arm × site × year × crop × experimental unit × soil depth) and `ctrl_id` identify the arms themselves. Use them to de-duplicate before any statistic.
+-   **Date provenance**: whether the planting and harvest dates come from the publication.
+
+```{r derive}
+units <- tribble(~Units, ~yield_factor, ~yield_basis,
+  "Mg/ha", 1, "as reported", "kg/ha", 0.001, "as reported", "q/ha", 0.1, "as reported",
+  "Mg DM/ha", 1, "dry matter", "kg DM/ha", 0.001, "dry matter",
+  "Mg/ha/yr", 1, "per year", "kg/ha/yr", 0.001, "per year")
+lte <- lte |> left_join(units, by = "Units") |>
+  mutate(is_yield     = Out.SubInd == "Crop Yield",
+         yield_t_ha   = if_else(is_yield, MeanT * yield_factor, NA),
+         yield_c_t_ha = if_else(is_yield, MeanC * yield_factor, NA),
+         yield_basis  = if_else(is_yield, yield_basis, NA),
+         m_year_is_aggregate = str_detect(M.Year, fixed("..")),
+         m_year_first = as.integer(str_extract(M.Year, "[0-9]{4}")),
+         m_year_last  = as.integer(str_extract(M.Year, "[0-9]{4}(?!.*[0-9]{4})")),
+         obs_id  = paste(Site.Key, M.Year, Product.Simple, EU, TID, Upper, Lower, sep = "|"),
+         ctrl_id = paste(Site.Key, M.Year, Product.Simple, EU, CID, Upper, Lower, sep = "|"),
+         is_livestock = Product.Type %in% "Animal" | Version %in% "skinny_cow_2022",
+         Duration = if_else(Duration < 0, NA, Duration),                 # negative durations are data-entry errors
+         planting_date_source = if_else(is.na(Plant.Start), "none", "reported"),
+         harvest_date_source  = if_else(is.na(Harvest.End), "none", "reported"),
+         era_release = release, era_provenance = manifest$datasets$pipeline_provenance[1]) |>
+  select(-Lat, -Lon, -yield_factor, -is_yield)                          # Lat/Lon are empty legacy columns
 ```
 
+## 5. Seasonal climate
 
-### Download the climate data
+ERA's geodata pipeline computes growing-season climate statistics per site × year × crop × planting window (`clim_stats_*.RData`). Two sets are used, in order:
 
-Seasonal climate variables are calculated over the crop growing season and stored in the ERA geodata S3 bucket. These are downloaded and merged onto the LTE dataset.
+1.  **PDate** — windows from planting dates reported in the publication (`PDate.SLen.Data`), matched on site, year, crop and planting window.
+2.  **EcoCrop** — generic crop-calendar windows (`PDate.SLen.EcoCrop`), used only where step 1 finds nothing, matched on site, year and crop. Treat these rows with more caution: the window is not the study's own.
 
-```{r merge-climate}
-# Download and merge climate data from S3
-s3_data_dir  <- "s3://digital-atlas/era/geodata"
-download_dir <- "downloaded_data"
+`climate_date_source` records which set matched; `climate_window_start/end` is the window the statistics were actually computed over (for EcoCrop rows it can differ from a reported `Plant.Start`). Climate values are rounded to 3 decimals.
 
-files_s3 <- s3$dir_ls(s3_data_dir)
-files_s3 <- grep("clim_stats.*RData", files_s3, value = TRUE)
-files_s3 <- tail(files_s3, 1)
+```{r climate}
+listing  <- paste(readLines("https://digital-atlas.s3.amazonaws.com/?list-type=2&prefix=era/geodata/clim_stats", warn = FALSE), collapse = "")
+clim_key <- str_extract_all(listing, "era/geodata/clim_stats_[0-9.-]+[.]RData")[[1]] |> sort() |> last()
+cs <- (\(f) { e <- new.env(); load(f, envir = e); get(ls(e)[1], e) })(fetch(paste0("https://digital-atlas.s3.amazonaws.com/", clim_key)))
 
-files_local <- gsub(s3_data_dir, download_dir, files_s3)
-if (!file.exists(files_local)) {
-  s3$file_download(files_s3, files_local)
-}
+prep <- function(tabs, keys) {                                            # one wide table per window set
+  tabs <- set_names(tabs, recode(names(tabs), rainfall = "rain", temperature = "temp"))
+  imap(tabs, \(x, nm) as_tibble(x) |> mutate(prod_key = str_to_lower(str_trim(Product))) |>
+         select(-any_of(c("row_index", "window", "EU", "Product"))) |>
+         distinct(across(all_of(keys)), .keep_all = TRUE) |> rename_with(\(v) paste0(nm, "_", v), -all_of(keys))) |>
+    reduce(full_join, by = keys) }
+keys_p <- c("Site.Key", "M.Year", "prod_key", "Plant.Start", "Plant.End"); keys_e <- keys_p[1:3]
+clim_p <- prep(cs$PDate.SLen.Data, keys_p); clim_e <- prep(cs$PDate.SLen.EcoCrop, keys_e)
+clim_cols <- setdiff(names(clim_p), keys_p)
 
-clim_data <- miceadds::load.Rdata2(file = basename(files_local), path = dirname(files_local))
-cat("Climate data loaded. Components:", paste(names(clim_data), collapse = ", "), "\n")
-
+lte <- lte |> mutate(prod_key = str_to_lower(str_trim(Product.Simple))) |> left_join(clim_p, by = keys_p) |>
+  mutate(climate_date_source = if_else(is.na(gdd_gdd_opt), NA, "PDate"),
+         climate_window_start = if_else(is.na(gdd_gdd_opt), as.Date(NA), Plant.Start),
+         climate_window_end   = if_else(is.na(gdd_gdd_opt), as.Date(NA), Plant.End))
+fill <- lte |> filter(is.na(climate_date_source)) |> select(-all_of(clim_cols)) |> left_join(clim_e, by = keys_e) |>
+  mutate(climate_date_source  = if_else(is.na(gdd_gdd_opt), NA, "EcoCrop"),
+         climate_window_start = gdd_Plant.Start, climate_window_end = gdd_Plant.End,
+         planting_date_source = if_else(planting_date_source == "none" & !is.na(gdd_Plant.Start), "EcoCrop", planting_date_source),
+         Plant.Start = coalesce(Plant.Start, gdd_Plant.Start), Plant.End = coalesce(Plant.End, gdd_Plant.End)) |>
+  select(-ends_with("_Plant.Start"), -ends_with("_Plant.End"))
+lte <- bind_rows(filter(lte, !is.na(climate_date_source)), fill) |>
+  mutate(harvest_date_source = if_else(harvest_date_source == "none" & !is.na(rain_Harvest.End), "ERA climate window", harvest_date_source),
+         across(all_of(clim_cols) & where(is.numeric), ~ round(.x, 3))) |>
+  select(-prod_key)
+print(count(lte, climate_date_source, planting_date_source))
 ```
 
-```{r prepare-climate-helper}
-# Helper function to consolidate climate data components
-prep_and_consolidate_climate <- function(climate_source_list, join_keys) {
+Rows without climate are exported with the reason, so they can be worked on rather than guessed at.
 
-  prep_single <- function(dt, name) {
-    x <- copy(as.data.table(dt))
-    if ("Product" %in% names(x)) setnames(x, "Product", "Product.Simple")
-    data_cols <- setdiff(names(x), c(join_keys, "row_index", "window", "EU"))
-    setnames(x, data_cols, paste0(name, "_", data_cols))
-    cols_to_keep <- c(join_keys, paste0(name, "_", data_cols))
-    x <- x[, .SD, .SDcols = cols_to_keep]
-    x <- unique(x, by = join_keys)
-    return(x)
-  }
-
-  gdd    <- prep_single(climate_source_list$gdd,         "gdd")
-  rain   <- prep_single(climate_source_list$rainfall,    "rain")
-  temp   <- prep_single(climate_source_list$temperature, "temp")
-  eratio <- prep_single(climate_source_list$eratio,      "eratio")
-
-  consolidated <- Reduce(function(x, y) merge(x, y, by = join_keys, all = TRUE),
-                         list(gdd, rain, temp, eratio))
-  unique(consolidated, by = join_keys)
-}
+```{r unmatched}
+unmatched <- lte |> filter(is.na(climate_date_source)) |>
+  mutate(reason = case_when(is.na(Latitude) ~ "no coordinates", is.na(Product.Simple) ~ "no crop",
+                            m_year_is_aggregate ~ "aggregated M.Year", is.na(Plant.Start) ~ "no planting date",
+                            TRUE ~ "no climate row for this key")) |>
+  count(Site.Key, M.Year, Product.Simple, Plant.Start, Plant.End, reason, name = "n_rows")
+write_csv(unmatched, "data/unmatched_climate_keys.csv"); print(count(unmatched, reason, wt = n_rows))
 ```
 
-**Planting Dates and Climate Windows subsection:**
+## 6. One row per arm measurement (`lte_arms.csv`)
 
-> Climate variables are computed over the window between `Plant.Start` and `Plant.End` for each site-year-crop combination. Two sources of planting dates are used, and the `climate_date_source` column records which was applied for each row:
->
-> -   **`PDate`** --- precise planting dates reported or estimated from the study itself. Where `climate_date_source == "PDate"`, the `Plant.Start` and `Plant.End` columns reflect the actual dates recorded in the original publication.
->
-> -   **`EcoCrop`** --- generic crop calendar dates from the EcoCrop database, used as a fallback where precise dates are unavailable. Where `climate_date_source == "EcoCrop"`, the `Plant.Start` and `Plant.End` columns are derived from the EcoCrop planting calendar for that crop and location, not from the original study. Users should treat these dates and their associated climate variables with more caution, as they may not reflect actual growing conditions at the site.
->
-> -   **`NA`** --- rows where no climate data could be merged from either source. These are exported separately to `unmatched_climate_keys.csv` for inspection.
->
-> The climate variables available are:
->
-> | Prefix    | Variables                                                                           |
-> |-----------|-------------------------------------------------------------------------------------|
-> | `gdd_`    | Growing degree days (suboptimal, optimal, above optimal, above maximum)             |
-> | `rain_`   | Total rainfall, ETo, water balance, dry spell indices                               |
-> | `temp_`   | Min/max/mean temperature statistics and heat stress thresholds (35°C, 37.5°C, 40°C) |
-> | `eratio_` | Evapotranspiration ratio (actual/potential), drought stress indices                 |
->
-> Each climate group also includes `_Harvest.Start` and `_Harvest.End` columns recording the harvest window used in the climate calculation.
+`lte_final.csv` keeps ERA's pair structure (needed for effect sizes). For time series, yield-vs-climate plots or any per-treatment statistic, use `lte_arms.csv`: every control and treatment arm once per outcome, year and distinct measurement, with the climate attached. `arm_role` is `T`, `C` or `C/T` (an arm that is the control in some pairs and the treatment in others); `n_pairs` is the number of pairs the identical measurement came from; `n_means` \> 1 flags an arm with several distinct values for the same outcome (different sampling dates or data locations in the paper: see `DataLoc`, `Duration`, `Plant.Start`).
 
-```{r primary-climate-merge}
-cat("STEP 1: Merging with precise planting date climate data...\n")
-
-keys_primary      <- c("Site.Key", "M.Year", "Product.Simple", "Plant.Start", "Plant.End")
-primary_clim_data <- prep_and_consolidate_climate(clim_data$PDate.SLen.Data, keys_primary)
-
-lte_final <- copy(lte_dat)
-lte_final[, Product.Simple := tolower(trimws(Product.Simple))]
-primary_clim_data[, Product.Simple := tolower(trimws(Product.Simple))]
-
-for (col in c("Plant.Start", "Plant.End")) {
-  if (col %in% names(lte_final))         lte_final[, (col) := as.Date(get(col))]
-  if (col %in% names(primary_clim_data)) primary_clim_data[, (col) := as.Date(get(col))]
-}
-
-lte_final <- merge(lte_final, primary_clim_data, by = keys_primary, all.x = TRUE)
-
-climate_cols         <- names(primary_clim_data)[!names(primary_clim_data) %in% keys_primary]
-rows_matched_primary <- lte_final[!is.na(get(climate_cols[1])), .N]
-
-# Flag rows matched on precise planting dates
-lte_final[!is.na(get(climate_cols[1])), climate_date_source := "PDate"]
-
-cat("Successfully merged", rows_matched_primary, "rows using precise planting dates.\n\n")
+```{r arms}
+common <- c("LTE.ID", "Code", "Site.Key", "Site.ID", "Country", "Latitude", "Longitude", "M.Year", "m_year_first", "m_year_last",
+            "m_year_is_aggregate", "Product.Simple", "EU", "Out.SubInd", "Outcode", "Units", "yield_basis", "Mean.Error.Type",
+            "Upper", "Lower", "DataLoc", "Analysis.Function", "Duration", "Variety", "Rep", "Plot.Size",
+            "Plant.Start", "Plant.End", "Harvest.Start", "Harvest.End", "planting_date_source", "harvest_date_source",
+            "climate_date_source", "climate_window_start", "climate_window_end", "is_livestock", clim_cols)
+arms <- bind_rows(
+  T = lte |> transmute(across(all_of(common)), arm_id = obs_id,  arm_code = TID, arm_label = T.Descrip, mean = MeanT, mean_error = MeanT.Error, yield_t_ha, pair_index = Index),
+  C = lte |> transmute(across(all_of(common)), arm_id = ctrl_id, arm_code = CID, arm_label = C.Descrip, mean = MeanC, mean_error = MeanC.Error, yield_t_ha = yield_c_t_ha, pair_index = Index),
+  .id = "arm_role") |>
+  group_by(arm_id, Outcode) |> mutate(n_means = n_distinct(mean)) |>
+  group_by(arm_id, Outcode, mean) |> mutate(arm_role = paste(sort(unique(arm_role)), collapse = "/"), n_pairs = n()) |>
+  slice(1) |> ungroup() |> relocate(arm_role, arm_id, n_pairs, n_means, pair_index, .before = 1)
+write_csv(arms, "data/lte_arms.csv", na = "")
+cat(nrow(arms), "arm measurements from", nrow(lte), "pairs;", sum(arms$n_means > 1), "rows belong to arms with more than one value for the same outcome\n")
 ```
 
-```{r fallback-climate-merge}
-cat("STEP 2: Supplementing missing data with EcoCrop climate data...\n")
+## 7. Write the dataset, the build report and the provenance
 
-rows_to_fill <- lte_final[is.na(get(climate_cols[1]))]
+```{r write}
+lte <- lte |> relocate(LTE.ID, Code, Site.Key, Site.ID, Index, obs_id, ctrl_id, M.Year, Product.Simple, Out.SubInd, .before = 1)
+write_csv(lte, "data/lte_final.csv", na = "")
 
-if (nrow(rows_to_fill) > 0) {
-  keys_ecocrop      <- c("Site.Key", "M.Year", "Product.Simple")
-  ecocrop_clim_data <- prep_and_consolidate_climate(clim_data$PDate.SLen.EcoCrop, keys_ecocrop)
-  ecocrop_clim_data[, Product.Simple := tolower(trimws(Product.Simple))]
+report <- tibble::enframe(c(
+  `ERA compiled rows`               = nrow(era),
+  `LTE rows`                        = nrow(lte),
+  `LTE publications`                = n_distinct(lte$Code),
+  `LTEs (LTE.ID)`                   = n_distinct(lte$LTE.ID),
+  `rows without LTE.ID`             = sum(is.na(lte$LTE.ID)),
+  `sites (Site.Key)`                = n_distinct(lte$Site.Key),
+  `countries`                       = n_distinct(lte$Country),
+  `crop-yield rows`                 = sum(lte$Out.SubInd == "Crop Yield"),
+  `crop-yield rows with yield_t_ha` = sum(!is.na(lte$yield_t_ha)),
+  `rows with aggregated M.Year`     = sum(lte$m_year_is_aggregate),
+  `planting date reported`          = sum(lte$planting_date_source == "reported"),
+  `climate matched: PDate`          = sum(lte$climate_date_source %in% "PDate"),
+  `climate matched: EcoCrop`        = sum(lte$climate_date_source %in% "EcoCrop"),
+  `climate missing`                 = sum(is.na(lte$climate_date_source)),
+  `livestock rows (flagged)`        = sum(lte$is_livestock),
+  `arm measurements (lte_arms)`     = nrow(arms),
+  `crop-yield arm measurements`     = sum(arms$Out.SubInd == "Crop Yield")), name = "metric", value = "value")
+write_csv(report, "data/build_report.csv"); print(as.data.frame(report))
 
-  # Extract planting dates from raw table BEFORE prep function prefixes the column names
-  ecocrop_dates <- as.data.table(clim_data$PDate.SLen.EcoCrop$gdd)[
-    , .(Site.Key, M.Year, Product, Plant.Start, Plant.End)
-  ]
-  setnames(ecocrop_dates, "Product", "Product.Simple")
-  ecocrop_dates[, Product.Simple := tolower(trimws(Product.Simple))]
-  ecocrop_dates <- unique(ecocrop_dates, by = keys_ecocrop)
-  for (col in c("Plant.Start", "Plant.End")) {
-    ecocrop_dates[, (col) := as.Date(get(col))]
-  }
-
-  # Merge climate variables for unmatched rows
-  lte_final[ecocrop_clim_data, on = keys_ecocrop,
-            (climate_cols) := mget(paste0("i.", climate_cols))]
-
-  # Fill Plant.Start and Plant.End where still NA
-  lte_final[ecocrop_dates, on = keys_ecocrop, `:=`(
-    Plant.Start = fifelse(is.na(Plant.Start), i.Plant.Start, Plant.Start),
-    Plant.End   = fifelse(is.na(Plant.End),   i.Plant.End,   Plant.End)
-  )]
-
-  # Flag rows filled by EcoCrop fallback
-  lte_final[is.na(climate_date_source) & !is.na(get(climate_cols[1])),
-            climate_date_source := "EcoCrop"]
-
-  rows_matched_total     <- lte_final[!is.na(get(climate_cols[1])), .N]
-  rows_filled_by_ecocrop <- rows_matched_total - rows_matched_primary
-  cat("Filled an additional", rows_filled_by_ecocrop, "rows using EcoCrop data.\n\n")
-} else {
-  cat("No missing data to fill. Primary merge was 100% successful.\n\n")
-}
+write_json(list(lte_release = "2026.1", built = format(Sys.Date()), era_release = release,
+                era_provenance = manifest$datasets$pipeline_provenance[1], clim_stats = basename(clim_key),
+                registry = reg_url, rows = nrow(lte), publications = n_distinct(lte$Code), ltes = n_distinct(lte$LTE.ID)),
+           "data/VERSION.json", auto_unbox = TRUE, pretty = TRUE)
 ```
 
-**Using the climate variables provided:**\
-The columns prefixed `gdd_`, `rain_`, `temp_`, and `eratio_` contain seasonal climate statistics calculated over the growing season window defined by `Plant.Start` and `Plant.End`. The `climate_date_source` column indicates how these dates were determined: `"PDate"` means the dates came from the study itself; `"EcoCrop"` means the dates were derived from the EcoCrop generic crop calendar because no study-specific dates were available. EcoCrop-derived windows are less precise and may not reflect actual growing conditions at the site --- users should account for this uncertainty when using climate variables for those rows.
+## 8. Column dictionary
 
-**Adding your own climate variables:**\
-The key columns for linking to external climate datasets are `Site.Key`, `Latitude`, `Longitude`, `M.Year`, `Plant.Start`, and `Plant.End`. These uniquely identify each site-season combination and can be used to extract climate data from any gridded product (e.g. CHIRPS, ERA5, AgERA5) over the same growing season window. Where `climate_date_source == "EcoCrop"`, you may wish to replace the planting dates with more precise estimates before extracting your own climate variables.
+ERA's own field descriptions (`data/era_compiled_fields.csv`, exported from the `eragri` package) plus the columns added here and the climate variables.
 
-**Unmatched rows:**\
-Rows where no climate data could be merged (neither precise nor EcoCrop) are exported to `unmatched_climate_keys.csv`. These represent site-year-crop combinations not yet covered by the ERA geodata pipeline, and may be candidates for manual date lookup or alternative climate data sources.
-
-```{r climate-merge-report}
-total_merged <- lte_final[!is.na(get(climate_cols[1])), .N]
-total_rows   <- nrow(lte_final)
-
-cat("--- MERGE COMPLETE ---\n")
-cat("Total rows with climate data:", total_merged, "out of", total_rows, "\n")
-cat("Data coverage:", round(100 * total_merged / total_rows, 2), "%\n\n")
-
-cat("Climate date source breakdown:\n")
-print(lte_final[, .N, by = climate_date_source])
-
-
-fwrite(lte_final, "data/lte_final.csv")
-
-
+```{r dictionary}
+derived <- tribble(~Field.Name, ~Description,
+  "LTE.ID", "Long-term-experiment identifier from the curated registry (one LTE can span several publications).",
+  "obs_id", "Treatment-arm id: Site.Key | M.Year | Product.Simple | EU | TID | Upper | Lower. Identical across the pairs an arm appears in.",
+  "ctrl_id", "Control-arm id: Site.Key | M.Year | Product.Simple | EU | CID | Upper | Lower.",
+  "yield_t_ha", "MeanT converted to t/ha for crop-yield rows (see yield_basis); NA for other outcomes or unconvertible units.",
+  "yield_c_t_ha", "MeanC converted to t/ha for crop-yield rows.",
+  "yield_basis", "'as reported' (fresh / standard moisture as published), 'dry matter', or 'per year' (annualised).",
+  "m_year_is_aggregate", "TRUE when M.Year covers several years or seasons ('..' separator): the value is a multi-year mean.",
+  "m_year_first", "First calendar year in M.Year.", "m_year_last", "Last calendar year in M.Year.",
+  "is_livestock", "TRUE for animal-product rows (kept for completeness; not agronomy LTE data).",
+  "planting_date_source", "'reported' (from the publication), 'EcoCrop' (generic crop calendar, filled here) or 'none'.",
+  "harvest_date_source", "'reported', 'ERA climate window' (harvest end taken from the climate window) or 'none'.",
+  "climate_date_source", "Which climate set matched: 'PDate' (reported planting window) or 'EcoCrop' (generic window); NA = no climate.",
+  "climate_window_start", "Start of the window the climate statistics were computed over.",
+  "climate_window_end", "End of that window.",
+  "era_release", "ERA compiled release the row comes from.", "era_provenance", "ERA pipeline provenance string of that release.",
+  "arm_role", "lte_arms only: T, C, or C/T when the arm is control in some pairs and treatment in others.",
+  "arm_id", "lte_arms only: obs_id or ctrl_id of the arm.", "arm_code", "lte_arms only: ERA treatment code (TID/CID).",
+  "arm_label", "lte_arms only: treatment description (T.Descrip/C.Descrip).", "mean", "lte_arms only: reported mean of the arm.",
+  "mean_error", "lte_arms only: reported dispersion of the mean.",
+  "n_pairs", "lte_arms only: number of pairs in lte_final.csv that carry this identical arm measurement.",
+  "n_means", "lte_arms only: number of distinct values this arm has for this outcome and year (1 = a single measurement).",
+  "pair_index", "lte_arms only: Index of the first pair the measurement appears in.") |> mutate(Source = "this repository")
+clim_dict <- tibble(Field.Name = clim_cols) |> mutate(
+  Description = case_when(
+    str_ends(Field.Name, "Harvest.Start|Harvest.End") ~ "Harvest date bounding the climate window (per climate table).",
+    str_starts(Field.Name, "gdd_")    ~ "Growing degree days in the window: suboptimal / optimal / above-optimal / above-maximum temperature ranges (crop-specific thresholds).",
+    str_starts(Field.Name, "rain_")   ~ "Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",
+    str_starts(Field.Name, "temp_")   ~ "Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",
+    str_starts(Field.Name, "eratio_") ~ "Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",
+    str_starts(Field.Name, "logging_") ~ "Waterlogging indicators in the window (ERA geodata).",
+    TRUE ~ "Climate statistic from ERA geodata."),
+  Source = paste0("ERA geodata ", basename(clim_key)))
+dict <- bind_rows(read_csv("data/era_compiled_fields.csv", show_col_types = FALSE), derived, clim_dict) |>
+  filter(Field.Name %in% union(names(lte), names(arms))) |> distinct(Field.Name, .keep_all = TRUE)
+write_csv(dict, "data/data_dictionary.csv")
+cat(nrow(dict), "columns documented of", length(union(names(lte), names(arms))), "\n")
 ```

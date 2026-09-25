@@ -1,4 +1,12 @@
 .Rproj.user
 .Rhistory
 .RData
+.RDataTmp
 .Ruserdata
+LTEs_Project.Rproj
+downloaded_data/
+docs/downloaded_data/
+docs/*_files/
+
+/.quarto/
+**/*.quarto_ipynb

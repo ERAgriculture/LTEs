@@ -1,112 +1,102 @@
-# Long-term experiments in agronomy dataset & analysis: Part of the ERA data ecosystem
+# ERA long-term experiments (LTEs) with seasonal climate
 
-Welcome to the **ERA LTEs Analysis Repository**, part of the Excellence in Agronomy Initiative (EiA). This repository contains R code and a vignette for analyzing the performance of long-term agronomic experiments (LTEs). The primary focus is on integrating climate data to explore the impact of climate on experimental outcomes, such as yield and economic performance.
+Part of the **ERA (Evidence for Resilient Agriculture)** data ecosystem. This repository turns the public ERA
+compiled dataset into an analysis-ready table of **long-term agronomic experiments**, each observation joined to
+the seasonal climate of its growing season. Funded by the CGIAR Excellence in Agronomy Initiative (EiA).
 
-The dataset contains 34815 individual outcomes from 181 long-term experiments (LTEs) derived from 211 unique publications. These come from 260 sites in 28 countries. The average number of observations per study is 99 and the average duration of LTEs is 13.5 years.
+**Current release: `2026.1`** (built 2026-09-25 from ERA compiled release 2026.1). See [CHANGELOG.md](CHANGELOG.md).
 
+| | |
+|---|---|
+| LTE rows (control-vs-treatment pairs) | 33,646 |
+| Publications / long-term experiments / sites / countries | 293 / 244 / 286 / 30 |
+| Crop-yield rows (with yield in t/ha) | 17,979 (17,970) |
+| Rows with seasonal climate | 17,059 (9,388 on reported planting dates, 7,671 on EcoCrop calendars) |
+| Arm measurements in `lte_arms.csv` (of which crop yield) | 24,971 (12,853) |
 
-<div style="display: flex; justify-content: space-between;">
-    <img src="https://github.com/user-attachments/assets/5f9a3750-3135-48ea-a792-82ca028d3b5b" alt="duration" width="45%" />
-    <img src="https://github.com/user-attachments/assets/c1cadbb6-3366-4eef-9bc3-b32d807a7d9b" alt="location" width="45%" />
-</div>
+Numbers are written by the build to `data/build_report.csv`; provenance is in `data/VERSION.json`.
 
-LTES cover a range of agronomic management practices and experimental outcomes:
-<div style="display: flex; justify-content: space-between;">
-    <img src="https://github.com/user-attachments/assets/58e593ec-a853-4183-8711-feba1bf409d1" alt="outcomes" width="45%" />
-    <img src="https://github.com/user-attachments/assets/059ee4d1-3a5b-47cd-ac7a-4a23acc452ed" alt="practices" width="45%" />
-</div>
+## Files in `data/`
 
+| File | What it is |
+|---|---|
+| `lte_final.csv` | **The dataset.** One row per ERA comparison (control vs treatment, one outcome, one site-year). All 138 ERA compiled columns (minus the empty `Lat`/`Lon`), plus `LTE.ID`, analysis-ready columns and about 150 climate columns. |
+| `lte_arms.csv` | **One row per arm measurement** (control or treatment) per outcome and year, with the climate attached. Use this for time series, yield-vs-climate plots and any per-treatment statistic: no repeated pairs, the controls are included, and `n_means` flags arms with several values for one outcome. |
+| `data_dictionary.csv` | Every column of both files with a description and its source (ERA official descriptions, this repository, or ERA geodata). |
+| `unique_ltes_clean.csv` | The curated LTE registry (from `CIAT/ERA_dev`) after cleaning: `LTE.ID`, publication `Code`, `Site.ID`, years, coordinates. |
+| `unique_ltes_unresolved.csv` | Registry rows that could not be used: malformed rows, and publication codes that are not in the ERA compiled release. |
+| `unmatched_climate_keys.csv` | Site × year × crop × window combinations with no climate, with the reason. |
+| `build_report.csv`, `VERSION.json` | Counts per build step; ERA release, climate file and registry used. |
+| `era_compiled_fields.csv` | ERA's own descriptions of the compiled columns (exported from the `eragri` package). Input to the dictionary. |
+| `metadata.csv` | Field dictionary of the **raw ERA data model** (the extraction tables). Kept for reference; it does not describe `lte_final.csv`. |
 
-  
-## Purpose
+## How to read the data correctly
 
-The purpose of this repository is to:
-- Provide access to a large synthesis dataset of harmonized agronomic LTEs.
-- Analyze and visualize the performance of LTEs using robust statistical and geospatial methods.
-- Investigate the impact of climate variables on LTE outcomes.
-- Provide a systematic mapping and meta-analysis framework for agricultural research.
+- **Pairs vs arms.** ERA stores comparisons. The same treatment arm appears in `lte_final.csv` once per control it is
+  compared with, so counting rows over-counts observations. `Index` identifies the pair; `obs_id` and `ctrl_id`
+  identify the arms. `lte_arms.csv` is already de-duplicated and contains the control arms too.
+- **Yield.** `yield_t_ha` (treatment) and `yield_c_t_ha` (control) are in t/ha for crop-yield rows; `yield_basis`
+  says whether the value is as reported, dry matter or per year. Do not re-derive from `Units`.
+- **Aggregated years.** `m_year_is_aggregate = TRUE` means `M.Year` such as `1993..2003`: the value is a mean over
+  several years or seasons and cannot be tied to one growing season. `m_year_first` / `m_year_last` give the span.
+- **Dates and climate provenance.** `planting_date_source` is `reported` (from the paper), `EcoCrop` (generic crop
+  calendar) or `none`. `climate_date_source` says which climate set matched (`PDate` or `EcoCrop`);
+  `climate_window_start/end` is the window the climate statistics were computed over. EcoCrop-based rows are
+  less precise; report their share in any analysis.
+- **LTE identity.** `LTE.ID` links publications to experiments (one LTE can have several papers). 61 rows in 2
+  multi-site publications could not be attributed to a single LTE and have `LTE.ID` empty.
+- **Livestock rows.** 57 rows are animal products (`is_livestock = TRUE`); they are kept for completeness.
 
----
+## Climate variables
 
-## Contents
+Computed by the ERA geodata pipeline over the growing-season window, from `s3://digital-atlas/era/geodata/clim_stats_*.RData`:
 
-### Repository Structure
-- **`ERA_ltes.Rproj`**: The R project file for organizing and managing the repository.
-- **`era_ltes.Rmd`**: The main vignette file providing an in-depth guide to analyzing LTEs.
-- **`downloaded_data`**: Folder for data files that are downloaded by running the `era_ltes.Rmd`, including LTE and climate datasets.
- 
----
+| Prefix | Content |
+|---|---|
+| `gdd_` | growing degree days in sub-optimal, optimal, above-optimal and above-maximum ranges |
+| `rain_` | rainfall total, reference ET, water balance, dry-spell indices (0.1, 1 and 5 mm/day thresholds) |
+| `temp_` | min/max/mean temperature statistics and heat-stress days above 35, 37.5 and 40 °C |
+| `eratio_` | actual/potential evapotranspiration ratio and drought-stress days below 0.5, 0.25 and 0.1 |
+| `logging_` | waterlogging indicators |
 
-## Features
+Each group carries `_Harvest.Start` / `_Harvest.End` (the harvest bound of the window). Values are rounded to 3 decimals.
 
-1. **Vignette**:
+## Build it yourself
 
-- [Access Vignette here](https://eragriculture.github.io/LTEs/Vignette-LTEs-2-.html)
+Everything is downloaded from public URLs; no credentials, no S3 client. Requires R with `dplyr`, `readr`,
+`stringr`, `purrr`, `arrow`, `jsonlite`, and Quarto.
 
-   - The vignette  includes:
-     - Exploration of LTE data from the ERA database.
-     - Visualization of geographic distribution, practices, and outcomes in LTEs.
-     - Systematic mapping of LTE durations and measured outcomes.
-     - Methods to integrate and analyze climate data.
+```bash
+quarto render ERA_LTE_Data_Preparation_With_Climate_Merge.qmd
+mv ERA_LTE_Data_Preparation_With_Climate_Merge.html docs/
+```
 
-3. **Integration with Climate Data**:
-   - Analyzes how climatic factors such as precipitation and temperature influence LTE outcomes.
-   - Provides interactive tools to visualize climate trends and anomalies alongside LTE data.
+Do not pass `--output-dir docs`: Quarto then cleans `docs/` and deletes the legacy documents kept there.
+Downloads are cached in `downloaded_data/` (git-ignored). The build takes under a minute.
 
-4. **Systematic Mapping and Meta-Analysis**:
-   - Frameworks to study the relationships between agricultural practices and outcomes.
-   - Utilizes statistical and geospatial approaches to gain insights into LTE contributions.
-     
----
+Inputs, resolved at run time:
 
-## How to Use
+- ERA compiled release named in `https://digital-atlas.s3.amazonaws.com/era/data/releases/latest.json`
+- newest `clim_stats_*.RData` under `era/geodata/`
+- LTE registry `data_entry/long_term_experiments/unique.ltes.csv` in `CIAT/ERA_dev`
 
-To explore the data and analyses, open the `era_ltes.Rmd` file in RStudio and knit the document. This will generate an HTML report with comprehensive visualizations and insights.  
+## Using it downstream
 
-Note that the `climate data` code block line `POWER.CHIRPS <- arrow::open_dataset("s3://digital-atlas/era/geodata/POWER.CHIRPS.parquet")` is connecting to a large cloud stored parquet file,it can take several minutes for this file to load even with a fast connection, please be patient.
+Pin a release: fetch files from a tag (for example
+`https://raw.githubusercontent.com/ERAgriculture/LTEs/2026.1/data/lte_final.csv`), not from `main`, so that
+rebuilds do not change your results silently. Check `data/VERSION.json` and cite the ERA release it names.
 
----
+## Legacy material
 
-## Data Sources
-
-This repository uses the following data sources:
-- **ERA Dataset**: A compilation of LTEs focused on agricultural practices and their outcomes across various geographies.
-- **Climate Data**: Integrated climate datasets from [NASA POWER](https://power.larc.nasa.gov/) and [CHIRPS](https://www.chc.ucsb.edu/data/chirps).
-- The dataset is available at this cloud storage address `s3://digital-atlas/era/data/`. LTE data is  contained in a series of tables within an `.RData` object. The naming convention of the object is `industrious_elephant_2023-YYYY-MM-DD.RData` where YYYY-MM-DD indicate the production date of the most recent version of the data (e.g. `industrious_elephant_2023-2025-01-10.RData`).
----
-
-## Links
-
-- [Link to Excel Template](https://github.com/CIAT/ERA_dev/blob/main/data_entry/industrious_elephant_2023/excel_data_extraction_template/V2.0.28%20-%20Industrious%20Elephant.xlsm)
-- [ERA GitHub](https://github.com/CIAT/ERA_dev)
-  
----
+`docs/Vignette LTEs.Rmd`, `docs/Vignette-LTEs-2-.html`, `docs/LTEs_analysis.Rmd` and `lte_summary.Rmd` are the
+2025 exploratory analyses (systematic map, practices, durations). They predate this build and read older inputs.
 
 ## Team
 
-This project is led and implemented by the **Climate Action Lever** of the **Alliance of Bioversity International and CIAT**.
+Alliance of Bioversity International and CIAT, Climate Action lever: Lolita Muller (m.lolita@cgiar.org),
+Namita Joshi (n.joshi@cgiar.org), Peter Steward (p.steward@cgiar.org), Todd Rosenstock (t.rosenstock@cgiar.org).
 
-- **Lolita Muller** – *Senior Research Associate and Lead Developer*  
-  Email: [m.lolita@cgiar.org](mailto:m.lolita@cgiar.org)  
-- **Todd Rosenstock** – *Principal Scientist*  
-  Email: [t.rosenstock@cgiar.org](mailto:t.rosenstock@cgiar.org)  
-- **Peter Steward** – *Scientist*  
-  Email: [p.steward@cgiar.org](mailto:p.steward@cgiar.org)  
-- **Namita Joshi** – *Senior Research Associate*  
-  Email: [n.joshi@cgiar.org](mailto:n.joshi@cgiar.org)  
+## License and citation
 
----
-
-## License
-
-This project is licensed under the [GPL-3.0 License](https://opensource.org/licenses/GPL-3.0).
-
----
-
-## Acknowlegements
-
-This work is supported under the **Climate** area of work within the **CGIAR Excellence in Agronomy Initiative**. EiA has funded the extraction and integration of LTE data.
-
----
-
-![Logos](https://github.com/user-attachments/assets/d3112c9d-6392-46a2-9fc6-8d0b72e6aec1)
+Code: GPL-3.0 (see LICENSE). Data: derived from ERA compiled release 2026.1 (CC-BY-4.0). Cite this repository
+(CITATION.cff) and ERA (Rosenstock et al. 2024).
