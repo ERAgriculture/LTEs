@@ -1,0 +1,18 @@
+metric,value
+ERA compiled rows,199096
+LTE rows,33646
+LTE publications,293
+LTEs (LTE.ID),244
+rows without LTE.ID,61
+sites (Site.Key),286
+countries,30
+crop-yield rows,17979
+crop-yield rows with yield_t_ha,17970
+rows with aggregated M.Year,4079
+planting date reported,19652
+climate matched: PDate,9388
+climate matched: EcoCrop,7671
+climate missing,16587
+livestock rows (flagged),57
+arm measurements (lte_arms),24971
+crop-yield arm measurements,12853

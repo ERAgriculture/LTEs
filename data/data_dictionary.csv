@@ -1,0 +1,285 @@
+Field.Name,Description,Source
+Site.Key,"Longitude, latitude and buffer for the site",ERA (eragri::ERACompiledFields)
+Index,A unique number identifiying an single observation (i.e. row) in ERA.,ERA (eragri::ERACompiledFields)
+Code,Each paper is assigned a unique code that can be used to identify the source of the data in the database. The code consists of your initials (first and last name) and a sequential four-digit number that begins with 0000 and goes up 1 with each paper entered.,ERA (eragri::ERACompiledFields)
+Author,"The name of the first author, last name comes first with no punctuation. Use all initials given and do not include spaces between initials.",ERA (eragri::ERACompiledFields)
+Date,The year of publication.,ERA (eragri::ERACompiledFields)
+Journal,"Abbreviation of the journal name. We use WoS abbreviations that can be found here: https://images.webofknowledge.com/images/help/WOS/A_abrvjt.html
+This field will autofill using the data in the Levels tab matching to the user selected journal name.",ERA (eragri::ERACompiledFields)
+DOI,DOI (or url if no DOI available) of article. DOI = Digital Object Identifier.,ERA (eragri::ERACompiledFields)
+Elevation,The elevation in meters (m). Provide the mid-point if a range is given.,ERA (eragri::ERACompiledFields)
+Country,Country Name,ERA (eragri::ERACompiledFields)
+ISO.3166.1.alpha.3,"Standardized country name using ISO.3166-1.alpha-3. This field should be auto filled using the country selected and data in the Levels Tab,",ERA (eragri package_field_dictionary 2026.2-rc.4)
+Site.Type,"One of the following: Farm, Station, Greenhouse, Survey, or Lab. 
+Farm research is conducted in a farmer’s field and can be managed by the farmer or researcher. 
+Station research is conducted in a controlled setting of research station, university or school. 
+Survey research is conducted via interviews that yields quantitative data based on testimonial. 
+Greenhouse is conducted in a greenhouse and is only relevant for studies of greenhouse gas emissions data. 
+Lab studies can include fisheries feeding trials conducted at a small scale in university research labs.",ERA (eragri::ERACompiledFields)
+Site.ID,"Free text name to identify the site. Include institution/station name and location or village/town in county/district, but not the country.",ERA (eragri::ERACompiledFields)
+MAT,"Reported mean annual temperature in degrees C. If a range is given, average the values and enter the average. If mean highs and lows are given, they can be averaged to estimate the mean annual temperature.",ERA (eragri::ERACompiledFields)
+MAP,Mean annual precipitation (mm) for the location. This should be a long-term average for more than 10 years of data.,ERA (eragri::ERACompiledFields)
+TAP,Total annual precipitation (mm) for the location in the year corresponding to the outcome data,ERA (eragri::ERACompiledFields)
+MSP,Mean seasonal precipitation (mm) for the location in the season corresponding to the outcome data. This should be a long-term average from more than 10 years of data.,ERA (eragri::ERACompiledFields)
+TSP,Total seasonal precipitation (mm) for the location in the season corresponding to the outcome data,ERA (eragri::ERACompiledFields)
+Soil.Type,List the given soil classification/name in lowercase letters. If more than one soil type is given (within the same taxonomic system) enter both separated by a period ‘.’,ERA (eragri::ERACompiledFields)
+Soil.Classification,"List the taxonomic system used to classify the soil. Choose from {FAO, USDA, other}.",ERA (eragri::ERACompiledFields)
+Soil.Texture,"List the soil texture provided in the text or in tables in lowercase letters. If no texture is named, but % of sand, silt and clay are given, use the soil texture triangle to estimate soil texture (https://www.nrcs.usda.gov/wps/portal/nrcs/detail/soils/survey/?cid=nrcs142p2_054167).",ERA (eragri::ERACompiledFields)
+SOC,"Soil organic carbon. If multiple soil depths are reported, use 0-20 cm, or the closest reported value. Do NOT use soil organic matter (SOM) or total carbon (TSC) measurements here.",ERA (eragri::ERACompiledFields)
+SOC.Unit,Units provided for soil organic carbon. Usually either g/kg or % (also can be density kg/m3 or stocks t/ha),ERA (eragri::ERACompiledFields)
+SOC.Depth,"Concatenate min (top) and max (bottom) depths user entered with a """"-"""", e.g. 0-10.",ERA (eragri::ERACompiledFields)
+Soil.pH,"Soil pH value derived during site characterization. If multiple methods for pH are given, report the water (H2O) method.",ERA (eragri::ERACompiledFields)
+Soil.pH.Method,Method used to calculate soil pH.,ERA (eragri::ERACompiledFields)
+Plant.Start,Starting of planting period (dd.mm.yyyy),ERA (eragri::ERACompiledFields)
+Plant.End,End of planting period (dd.mm.yyyy),ERA (eragri::ERACompiledFields)
+Harvest.Start,Starting of harvest period (dd.mm.yyyy),ERA (eragri::ERACompiledFields)
+Harvest.End,End of harvest period (dd.mm.yyyy),ERA (eragri::ERACompiledFields)
+Rep,"The number of replicates for the treatments. If the number varies between treatments, use the lowest number. If no number is given, leave blank.",ERA (eragri::ERACompiledFields)
+Plot.Size,"The size of the smallest treatment plot unit in m2. If plot dimensions are given, calculate the area in m2. For example, if the size of the subplots is 6m x 4m, the Plot.Size is 24 (m2).",ERA (eragri::ERACompiledFields)
+CID,"A unique identifier (within study) describing a set of management practices that occurred in the control which is used to identify the treatment combinations tested, to allow comparison across outcomes in a paper. A default system of T1, T2, T3, etc. can be used. CID should describe the treatment used as the control for this observation.",ERA (eragri::ERACompiledFields)
+C.Descrip,[Superceded by C.Descrip.Clean column] Free text description of the control treatment. Use sufficient detail to easily identify the practices.,ERA (eragri::ERACompiledFields)
+C.NI,Amount of inorganic (chemical) nitrogen applied to control plots in kg/ha,ERA (eragri::ERACompiledFields)
+C.NO,"Amount of nitrogen in organic materials (manures or compost, but not residues) applied to control plots, preferably in kg/ha. If no nitrogen content is provided, please list amount of organic manure applied with a ‘t’ to symbolize tonnes.",ERA (eragri::ERACompiledFields)
+TID,"A unique identifier (within study) describing a set of management practices that occurred in treatment which is used to identify the treatment combinations tested, to allow comparison across outcomes in a paper. A default system of T1, T2, T3, etc. can be used. TID should describe the treatment used as the control for this observation.",ERA (eragri::ERACompiledFields)
+T.Descrip,[Superceded by T.Descrip.Clean column] Free text description of the CSA treatment. Use sufficient detail to easily identify all the component practices.,ERA (eragri::ERACompiledFields)
+T.NI,Amount of inorganic (chemical) nitrogen (N) applied to CSA treatment in kg/ha,ERA (eragri::ERACompiledFields)
+T.NO,"Amount of nitrogen (N) in organic materials (manures or compost) applied to CSA treatment, preferably in kg/ha. If no nitrogen content is provided, please list amount of organic manure applied with a ‘t’ to symbolize tonnes.",ERA (eragri::ERACompiledFields)
+Diversity,"Name of species in intercrop or rotations including the crop, first letter of name capitilized and the rest lowercase. Use a dash (-) for intercrops and forward slash (/) for rotation. Use common names of species, unless agroforestry species, then use scientific name. This should be used for both crop and agroforestry intercroppings.",ERA (eragri::ERACompiledFields)
+Variety,Commercial name of the crop or animal variety. Do not include the type of crop or animal in field (e.g. Maasai Red Goats should be Maasai Red).,ERA (eragri::ERACompiledFields)
+Tree,"Name of tree species used in agroforestry experiments, can be both as an intercrop or as an agroforestry mulch. Please use scientific name and be careful of your spelling. Use full scientific name, do not abbreviate genus (e.g., Mangifera indica should not be abbreviated to M.indica).",ERA (eragri::ERACompiledFields)
+Duration,"Length of time the experiment has been ongoing up to the date the data are being reported for in years. In bimodal rainfall systems with multiple growing seasons, seasons are identified by fractions of the year, 0.5, etc. If outcomes are reported in a unimodal rainfall system with one growing season per year, the duration can be equivalent to one year.",ERA (eragri::ERACompiledFields)
+M.Year,The calendar year the measurement was taken. Seasons in multi-season systems are identified by decimals ‘.1’ or ‘.2’ for the first and second season respectively. When the measurements are average values for more than one year create a decimal for the years covered.,ERA (eragri::ERACompiledFields)
+M.Year.Start,First year the measurement was taken (YYYY). For yield or similar outcomes this should relate to the harvest year (rather than the planting year). Where data are aggregated across years also complete the Measurement End Year Field.,ERA (eragri::ERACompiledFields)
+M.Year.End,"This only required for temporally aggregated observations (e.g. a result that has been averaged from crop yields reported from 2000,2001 and 2002). Here report the last year of the period over for which observations were aggregated (in the previous example this would be 2002).",ERA (eragri::ERACompiledFields)
+Season.Start,"This only required in areas where there are mutiple growing seasons in a year (e.g., areas with bimodal rainfall or irrigated cropping in dry seasons of a unimodal system).
+Leave blank where there is only one growing season per year or no seasonal information is presented with the data.
+Code the season in order 1,2,etc. Determine the season sequence by harvest year. If there are two cropping seasons, with crops harvested in Feb and Sept, Feb = season 1 and Sept = season 2.",ERA (eragri::ERACompiledFields)
+Season.End,"This only required for temporally aggregated observations in areas with more than one growing season (e.g. a result that has been averaged from crop yields reported from 2000 season 1,2001 season 1 and 2002 season 1). Here report the last season of the period over for which observations were aggregated (in the previous example this would be 1).",ERA (eragri::ERACompiledFields)
+EU,The experimental unit (EU) for which experiment outcomes are reported. This usually a crop or animal product. For cookstove papers it may be a cookstove. The EU for soil outcomes should be the crop(s) grown on the soil unless no crops are grown at all. Letters in the code should be lowercase. If the outcome refers to multiple experimental units (e.g. soil outcomes during an intercropping experiment) select all experimental units separated by a period (see EU2 tab).,ERA (eragri::ERACompiledFields)
+Outcode,"The productivity, resilience, or mitigation outcome indicator that data are being reported on (see OUTCOMES2 tab).",ERA (eragri::ERACompiledFields)
+Units,Free text description of the units of the data being reported without special characters or formatting.,ERA (eragri::ERACompiledFields)
+MeanC,"The value that corresponds to the control treatment and outcome. Please standard yields to t/ha where appropropriate, keeping as many decimal places as there is data for.",ERA (eragri::ERACompiledFields)
+MeanT,"The value that corresponds to the CSA treatment and outcome. Please standard yields to kg/ha where appropropriate, keeping as many decimal places as there is data for.",ERA (eragri::ERACompiledFields)
+Upper,"The depth for which the MeanC and MeanT correspond for soil properties in cm (lowest depth value = upper, so if you have a depth of 0-20 cm the lowest value = 20).",ERA (eragri::ERACompiledFields)
+Lower,"The depth for which the MeanC and MeanT correspond for soil properties in cm (highest depth value = lower, so if you have a depth of 0-20 cm the highest value = 0).",ERA (eragri::ERACompiledFields)
+DataLoc,"The location in the paper where the data can be found. This should be three letters (fig, tab, or txt) in lowercase and a number (for figures and tables) to signify figure, table or text, respectively.",ERA (eragri::ERACompiledFields)
+MeanFlip,"Is a negative result considered better than a positive result (i.e. MeanT/MeanC <1 = good)? This is indexed in using the Outcode field in the compednium and the """"Negative Values"""" field in the OUTCOMES tab",ERA (eragri::ERACompiledFields)
+T.Feed.Source,Where were livestock diets in the treatment practice(s) sourced from?,ERA (eragri::ERACompiledFields)
+C.Feed.Source,Where were livestock diets in the control practice(s) sourced from?,ERA (eragri::ERACompiledFields)
+Species,The tree species for which the experiment outcome are reported,ERA (eragri::ERACompiledFields)
+Partial.Outcome.Name,Free text to describe the partial outcome,ERA (eragri::ERACompiledFields)
+Partial.Outcome.Code,ERA practice codes of the partial outcome named in Partial.Outcome.Name.,"LTEs repo (unofficial, please verify)"
+MeanT.Error,Reported dispersion of MeanT; statistic type in Mean.Error.Type.,"LTEs repo (unofficial, please verify)"
+Mean.Error.Type,"Type of dispersion statistic reported for MeanT.Error / MeanC.Error (e.g. SE, SD, CV).","LTEs repo (unofficial, please verify)"
+MeanC.Error,Reported dispersion of MeanC; statistic type in Mean.Error.Type.,"LTEs repo (unofficial, please verify)"
+Analysis.Function,Describes the logical process used to compare control to treatment (for developers),ERA (eragri package_field_dictionary 2026.2-rc.4)
+Version,Year in which the ERA data entry took place. Either 2018 or 2020,ERA (eragri::ERACompiledFields)
+Mulch.Code,ERA practice code of the mulch material when mulching is part of the treatment.,"LTEs repo (unofficial, please verify)"
+Rep.Animals,Number of animals per replicate (livestock observations).,"LTEs repo (unofficial, please verify)"
+Tree.Feed,Fodder tree used as feed (livestock observations).,"LTEs repo (unofficial, please verify)"
+C13,Codes corresponding to all practices used on the control treatment described in C.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+C14,Codes corresponding to all practices used on the control treatment described in C.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+T13,Codes corresponding to all practices used on the CSA treatment described in T.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+T14,Codes corresponding to all practices used on the CSA treatment described in T.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+Irrigation.C,Indicates the presence of irrigation in the control treatment,ERA (eragri::ERACompiledFields)
+Irrigation.T,Indicates the presence of irrigation in the experimental treatment,ERA (eragri::ERACompiledFields)
+Irrig.Meth.C,Method of irrigation used in the control treatment. Cell will be blank if Irrigation.C is FALSE,ERA (eragri::ERACompiledFields)
+USD2010.C,"Monetary outcomes converted to International USD 2010 using World Bank CPI, PPP and exchange rates. There are no reliable data for Zimbabwe.",ERA (eragri::ERACompiledFields)
+USD2010.T,"Monetary outcomes converted to International USD 2010 using World Bank CPI, PPP and exchange rates. There are no reliable data for Zimbabwe.",ERA (eragri::ERACompiledFields)
+C1,Codes corresponding to all practices used on the control treatment described in C.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+C2,Codes corresponding to all practices used on the control treatment described in C.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+C3,Codes corresponding to all practices used on the control treatment described in C.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+C4,Codes corresponding to all practices used on the control treatment described in C.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+C5,Codes corresponding to all practices used on the control treatment described in C.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+C6,Codes corresponding to all practices used on the control treatment described in C.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+C7,Codes corresponding to all practices used on the control treatment described in C.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+C8,Codes corresponding to all practices used on the control treatment described in C.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+C9,Codes corresponding to all practices used on the control treatment described in C.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+C10,Codes corresponding to all practices used on the control treatment described in C.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+C11,Codes corresponding to all practices used on the control treatment described in C.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+C12,Codes corresponding to all practices used on the control treatment described in C.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+T1,Codes corresponding to all practices used on the CSA treatment described in T.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+T2,Codes corresponding to all practices used on the CSA treatment described in T.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+T3,Codes corresponding to all practices used on the CSA treatment described in T.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+T4,Codes corresponding to all practices used on the CSA treatment described in T.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+T5,Codes corresponding to all practices used on the CSA treatment described in T.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+T6,Codes corresponding to all practices used on the CSA treatment described in T.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+T7,Codes corresponding to all practices used on the CSA treatment described in T.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+T8,Codes corresponding to all practices used on the CSA treatment described in T.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+T9,Codes corresponding to all practices used on the CSA treatment described in T.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+T10,Codes corresponding to all practices used on the CSA treatment described in T.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+T11,Codes corresponding to all practices used on the CSA treatment described in T.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+T12,Codes corresponding to all practices used on the CSA treatment described in T.Descrip. Only one code is placed in each column (see subpractices column of PRACTICES2 tab).,ERA (eragri package_field_dictionary 2026.2-rc.4)
+ID,Study number,ERA (eragri::ERACompiledFields)
+obs_count,Number of observations,ERA (eragri::ERACompiledFields)
+out_count,Number of outcomes reported per study,ERA (eragri::ERACompiledFields)
+yi,the natural log of the response ratio log(MeanT/MeanC),ERA (eragri::ERACompiledFields)
+pc,pc=proportional change.It is a measure of the ratio of experimental to control outcomes,ERA (eragri::ERACompiledFields)
+plist,"experimental ERA practices that are in the experimental, but not the control treatment",ERA (eragri::ERACompiledFields)
+base.list,base practices that are shared between experimental and control treatments,ERA (eragri::ERACompiledFields)
+EUlist,the product code OutcomeCodes$Code for the observation using a - delim for multiple products,ERA (eragri::ERACompiledFields)
+Out.Pillar,Outcome pillar name,ERA (eragri::ERACompiledFields)
+Out.SubPillar,Outcome subpillar name,ERA (eragri::ERACompiledFields)
+Out.Ind,Outcome indicator name,ERA (eragri::ERACompiledFields)
+Out.SubInd,Outcome subindicator name,ERA (eragri::ERACompiledFields)
+SubPrName,Experimental subpractice name (note that this corresponds to the Subpractice.S field in the PracticeCodes),ERA (eragri::ERACompiledFields)
+PrName,Experimental practice name,ERA (eragri::ERACompiledFields)
+Theme,Experimental practice theme name,ERA (eragri::ERACompiledFields)
+SubPrName.Base,Base practice name (note that this corresponds to the Subpractice.S field in the PracticeCodes),ERA (eragri::ERACompiledFields)
+PrName.Base,Base practice name,ERA (eragri::ERACompiledFields)
+Theme.Base,Base practice theme name,ERA (eragri::ERACompiledFields)
+Product,"The full name of the product, including aspect of the component such as grain, meat or milk",ERA (eragri::ERACompiledFields)
+Product.Type,Product type name,ERA (eragri::ERACompiledFields)
+Product.Subtype,Product subtype name,ERA (eragri::ERACompiledFields)
+Product.Simple,"Simplified product name, excluding any aspects of component",ERA (eragri::ERACompiledFields)
+Latitude,Latitude of study location in degrees or decimal degrees,ERA (eragri::ERACompiledFields)
+Longitude,Longitude of study location in degrees or decimal degrees,ERA (eragri::ERACompiledFields)
+Buffer,Manual estimation (e.g. from measuring on google earth) in m of the spatial uncertainty for a point location. The site should within an X m radius (the buffer.manual amount) of the point location specified. Unit is meters,ERA (eragri::ERACompiledFields)
+AEZ16,"AEZs for Africa South of the Sahara (SSA) based on the methodology developed by FAO and IIASA, using the scheme with 16 classes",ERA (eragri::ERACompiledFields)
+AEZ16simple,Simplified version of AEZ16 removing the tropic/subtropic classification,ERA (eragri::ERACompiledFields)
+AEZ5,"AEZs Africa South of the Sahara (SSA) based on the methodology developed by FAO and IIASA, using the scheme with 5 classes",ERA (eragri::ERACompiledFields)
+Mean.Annual.Precip,Mean annual precipitation (mm) derived from the CHIRPS 2.0 dataset API at 0.05&deg resolution,ERA (eragri::ERACompiledFields)
+Mean.Annual.Temp,Mean annual temperature (C) derived from the NASA POWER dataset API at 0.5&deg resolution,ERA (eragri::ERACompiledFields)
+CLY,Weight percentage of clay particles (<0.0002 mm),ERA (eragri::ERACompiledFields)
+SND,Weight percentage of the sand particles (0.05-2 mm),ERA (eragri::ERACompiledFields)
+SLT,Weight percentage of silt particles (0.0002-0.05 mm),ERA (eragri::ERACompiledFields)
+LTE.ID,Long-term-experiment identifier from the curated registry (one LTE can span several publications).,this repository
+obs_id,Treatment-arm id: Site.Key | M.Year | Product.Simple | EU | TID | Upper | Lower. Identical across the pairs an arm appears in.,this repository
+ctrl_id,Control-arm id: Site.Key | M.Year | Product.Simple | EU | CID | Upper | Lower.,this repository
+yield_t_ha,MeanT converted to t/ha for crop-yield rows (see yield_basis); NA for other outcomes or unconvertible units.,this repository
+yield_c_t_ha,MeanC converted to t/ha for crop-yield rows.,this repository
+yield_basis,"'as reported' (fresh / standard moisture as published), 'dry matter', or 'per year' (annualised).",this repository
+m_year_is_aggregate,TRUE when M.Year covers several years or seasons ('..' separator): the value is a multi-year mean.,this repository
+m_year_first,First calendar year in M.Year.,this repository
+m_year_last,Last calendar year in M.Year.,this repository
+is_livestock,TRUE for animal-product rows (kept for completeness; not agronomy LTE data).,this repository
+planting_date_source,"'reported' (from the publication), 'EcoCrop' (generic crop calendar, filled here) or 'none'.",this repository
+harvest_date_source,"'reported', 'ERA climate window' (harvest end taken from the climate window) or 'none'.",this repository
+climate_date_source,Which climate set matched: 'PDate' (reported planting window) or 'EcoCrop' (generic window); NA = no climate.,this repository
+climate_window_start,Start of the window the climate statistics were computed over.,this repository
+climate_window_end,End of that window.,this repository
+era_release,ERA compiled release the row comes from.,this repository
+era_provenance,ERA pipeline provenance string of that release.,this repository
+arm_role,"lte_arms only: T, C, or C/T when the arm is control in some pairs and treatment in others.",this repository
+arm_id,lte_arms only: obs_id or ctrl_id of the arm.,this repository
+arm_code,lte_arms only: ERA treatment code (TID/CID).,this repository
+arm_label,lte_arms only: treatment description (T.Descrip/C.Descrip).,this repository
+mean,lte_arms only: reported mean of the arm.,this repository
+mean_error,lte_arms only: reported dispersion of the mean.,this repository
+n_pairs,lte_arms only: number of pairs in lte_final.csv that carry this identical arm measurement.,this repository
+n_means,lte_arms only: number of distinct values this arm has for this outcome and year (1 = a single measurement).,this repository
+pair_index,lte_arms only: Index of the first pair the measurement appears in.,this repository
+gdd_gdd_subopt,Growing degree days in the window: suboptimal / optimal / above-optimal / above-maximum temperature ranges (crop-specific thresholds).,ERA geodata clim_stats_2025-08-14.1.RData
+gdd_gdd_opt,Growing degree days in the window: suboptimal / optimal / above-optimal / above-maximum temperature ranges (crop-specific thresholds).,ERA geodata clim_stats_2025-08-14.1.RData
+gdd_gdd_aboveopt,Growing degree days in the window: suboptimal / optimal / above-optimal / above-maximum temperature ranges (crop-specific thresholds).,ERA geodata clim_stats_2025-08-14.1.RData
+gdd_gdd_abovemax,Growing degree days in the window: suboptimal / optimal / above-optimal / above-maximum temperature ranges (crop-specific thresholds).,ERA geodata clim_stats_2025-08-14.1.RData
+gdd_Harvest.Start,Harvest date bounding the climate window (per climate table).,ERA geodata clim_stats_2025-08-14.1.RData
+gdd_Harvest.End,Harvest date bounding the climate window (per climate table).,ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_35.days,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_35.days_pr,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_35.max_rseq,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_35.n_seq_d5,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_35.n_seq_d10,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_35.n_seq_d15,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_37.5.days,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_37.5.days_pr,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_37.5.max_rseq,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_37.5.n_seq_d5,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_37.5.n_seq_d10,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_37.5.n_seq_d15,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_40.days,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_40.days_pr,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_40.max_rseq,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_40.n_seq_d5,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_40.n_seq_d10,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_tg_40.n_seq_d15,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmin_min,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmin_mean,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmin_var,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmin_sd,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmin_range,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_max,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_mean,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_var,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_sd,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmax_range,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmean_max,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmean_min,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmean_mean,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmean_var,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmean_sd,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_tmean_range,"Temperature in the window: min/max/mean statistics and heat-stress days above 35, 37.5 and 40 C (days, share, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+temp_Harvest.Start,Harvest date bounding the climate window (per climate table).,ERA geodata clim_stats_2025-08-14.1.RData
+temp_Harvest.End,Harvest date bounding the climate window (per climate table).,ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_sum,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_eto_sum,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_eto_na,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_w_balance,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_w_balance_negdays,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_0.1.days,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_0.1.days_pr,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_0.1.max_seq,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_0.1.n_seq_d5,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_0.1.n_seq_d10,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_0.1.n_seq_d15,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_1.days,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_1.days_pr,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_1.max_seq,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_1.n_seq_d5,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_1.n_seq_d10,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_1.n_seq_d15,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_5.days,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_5.days_pr,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_5.max_seq,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_5.n_seq_d5,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_5.n_seq_d10,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_rain_l_5.n_seq_d15,"Rainfall in the window: total (mm), reference ET, water balance, and dry-spell counts for thresholds of 0.1, 1 and 5 mm/day (days, share of days, longest run, runs of 5/10/15+ days).",ERA geodata clim_stats_2025-08-14.1.RData
+rain_Harvest.Start,Harvest date bounding the climate window (per climate table).,ERA geodata clim_stats_2025-08-14.1.RData
+rain_Harvest.End,Harvest date bounding the climate window (per climate table).,ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_mean,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_median,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_min,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.5.days,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.5.days_pr,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.5.max_seq,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.5.n_seq_d5,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.5.n_seq_d10,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.5.n_seq_d15,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.25.days,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.25.days_pr,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.25.max_seq,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.25.n_seq_d5,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.25.n_seq_d10,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.25.n_seq_d15,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.1.days,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.1.days_pr,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.1.max_seq,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.1.n_seq_d5,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.1.n_seq_d10,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_eratio_l_0.1.n_seq_d15,"Evapotranspiration ratio (actual/potential) in the window: mean, median, min and drought-stress days below 0.5, 0.25 and 0.1.",ERA geodata clim_stats_2025-08-14.1.RData
+eratio_Harvest.Start,Harvest date bounding the climate window (per climate table).,ERA geodata clim_stats_2025-08-14.1.RData
+eratio_Harvest.End,Harvest date bounding the climate window (per climate table).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_sum,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_mean,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_median,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_present_mean,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_0.days,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_0.days_pr,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_0.max_seq,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_0.n_seq_d5,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_0.n_seq_d10,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_0.n_seq_d15,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_ssat_0.5.days,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_ssat_0.5.days_pr,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_ssat_0.5.max_seq,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_ssat_0.5.n_seq_d5,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_ssat_0.5.n_seq_d10,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_ssat_0.5.n_seq_d15,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_ssat_0.9.days,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_ssat_0.9.days_pr,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_ssat_0.9.max_seq,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_ssat_0.9.n_seq_d5,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_ssat_0.9.n_seq_d10,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_logging_g_ssat_0.9.n_seq_d15,Waterlogging indicators in the window (ERA geodata).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_Harvest.Start,Harvest date bounding the climate window (per climate table).,ERA geodata clim_stats_2025-08-14.1.RData
+logging_Harvest.End,Harvest date bounding the climate window (per climate table).,ERA geodata clim_stats_2025-08-14.1.RData
